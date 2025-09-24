@@ -1,21 +1,40 @@
-import { PrismaClient, RankTier } from '@prisma/client';
-const db = new PrismaClient();
+import { PrismaClient, EquipmentCategory } from '@prisma/client';
+const prisma = new PrismaClient();
 
 async function main() {
-  await db.country.createMany({
-    data: [
-      { name: 'Greece', iso2: 'GR' },
-      { name: 'United States', iso2: 'US' },
-    ],
-    //skipDuplicates: true
+  const gr = await prisma.country.create({
+    data: { name: 'Greece', iso2: 'GR' },
   });
-  await db.rank.createMany({
-    data: [
-      { name: 'Private', code: 'OR-1', tier: RankTier.ENLISTED, level: 1 },
-      { name: 'Lieutenant', code: 'OF-1', tier: RankTier.OFFICER, level: 1 },
-    ],
-    //skipDuplicates: true
+  const nato = await prisma.organization.create({
+    data: { name: 'NATO', type: 'MILITARY', countryId: gr.id },
   });
-  console.log('Seed done');
+
+  const haicorp = await prisma.company.create({
+    data: {
+      name: 'Hellenic Aerospace Industry',
+      hqCountryId: gr.id,
+      website: 'https://www.hai.gr',
+    },
+  });
+
+  await prisma.companyOrganization.create({
+    data: { companyId: haicorp.id, organizationId: nato.id, role: 'Member' },
+  });
+
+  await prisma.companyOffice.create({
+    data: { companyId: haicorp.id, countryId: gr.id, city: 'Tanagra' },
+  });
+
+  await prisma.equipment.create({
+    data: {
+      name: 'Trainer Jet X',
+      category: EquipmentCategory.AIRCRAFT,
+      manufacturerCompanyId: haicorp.id,
+      countryOfOriginId: gr.id,
+    },
+  });
+
+  console.log('Seed OK');
 }
-main().finally(() => db.$disconnect());
+
+main().finally(() => prisma.$disconnect());

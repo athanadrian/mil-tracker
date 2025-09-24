@@ -1,16 +1,20 @@
 generator client {
-  provider = "prisma-client-js"
+  provider   = "prisma-client-js"
+  engineType = "binary" // για Electron packaging
 }
 
 datasource db {
   provider = "sqlite"
-  url      = "file:./dev.db"
+  url      = env("DATABASE_URL")
 }
+
+/**
+ * ============== Enums ==============
+ */
 
 enum OrganizationType {
   GOVERNMENT
   MILITARY
-  COMPANY
   NGO
   OTHER
 }
@@ -57,6 +61,7 @@ enum RelatedType {
   PERSON
   MEETING
   PERSON_POSTING
+  COMPANY
   OTHER
 }
 
@@ -75,22 +80,111 @@ enum ServiceStatus {
   RETIRED
 }
 
-model Organization {
-  id   String           @id @default(cuid())
-  name String
-  type OrganizationType
+enum DocumentCategory {
+  ATYPO
+  DEPLI
+  ENIMEROTIKO
+}
 
-  // για να «δέσει» με Country.organizations
+enum DocumentAction {
+  OUTGOING
+  INCOMING
+}
+
+/**
+ * ============== Models ==============
+ */
+
+model Country {
+  id           String  @id @default(cuid())
+  name         String  @unique
+  iso2         String? @unique
+  countryImage String?
+
+  organizations   Organization[]
+  branches        ServiceBranch[]
+  people          Person[]
+  units           Unit[]
+  equipmentOrigin Equipment[]     @relation("EquipmentOriginCountry")
+  meetings        Meeting[]
+  postings        PersonPosting[]
+
+  // Companies με HQ στη χώρα
+  companies Company[]
+
+  // Γραφεία εταιρειών στη χώρα
+  companyOffices CompanyOffice[]
+}
+
+model Organization {
+  id                String           @id @default(cuid())
+  name              String
+  type              OrganizationType
+  organizationImage String?
+
   country   Country? @relation(fields: [countryId], references: [id])
   countryId String?
 
-  // back-relations (όχι υποχρεωτικά, αλλά χρήσιμα)
+  // back-relations
   people   Person[]
-  postings PersonPosting[] // από PersonPosting.organization
-  meetings Meeting[] // από Meeting.organization
+  postings PersonPosting[]
+  meetings Meeting[]
 
-  // manufacturer back-relation από Equipment.manufacturer
-  manufacturerFor Equipment[] @relation("ManufacturerOrg")
+  // Συμμετοχές εταιρειών σε οργανισμό
+  companyMembers CompanyOrganization[]
+}
+
+model Company {
+  id           String   @id @default(cuid())
+  name         String
+  website      String?
+  notes        String?
+  companyImage String?
+  // HQ χώρα
+  hqCountry    Country? @relation(fields: [hqCountryId], references: [id])
+  hqCountryId  String?
+
+  // Offices σε άλλες χώρες
+  offices CompanyOffice[]
+
+  // Συμμετοχές σε οργανισμούς (N:M)
+  memberships CompanyOrganization[]
+
+  // Προσωπικό (π.χ. υπάλληλοι)
+  people Person[]
+
+  // Κατασκευαστής για equipment
+  manufactured Equipment[] @relation("ManufacturerCompany")
+}
+
+model CompanyOffice {
+  id        String  @id @default(cuid())
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  companyId String
+
+  country   Country @relation(fields: [countryId], references: [id])
+  countryId String
+
+  city      String?
+  address   String?
+  latitude  Float?
+  longitude Float?
+
+  @@index([companyId])
+  @@index([countryId])
+}
+
+model CompanyOrganization {
+  company        Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  companyId      String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String
+
+  role  String?
+  since DateTime?
+  until DateTime?
+
+  @@id([companyId, organizationId])
 }
 
 model ServiceBranch {
@@ -102,35 +196,46 @@ model ServiceBranch {
 }
 
 model Rank {
-  id       String          @id @default(cuid())
-  code     String?
-  name     String
-  tier     RankTier
-  level    Int?
-  image    String? // URL ή path σε εικόνα/εικονίδιο
-  people   Person[]
-  postings PersonPosting[]
+  id        String          @id @default(cuid())
+  code      String?
+  name      String
+  tier      RankTier
+  level     Int?
+  rankImage String?
+  people    Person[]
+  postings  PersonPosting[]
 }
 
 model Person {
-  id             String               @id @default(cuid())
-  firstName      String
-  lastName       String
-  rank           Rank?                @relation(fields: [rankId], references: [id])
-  rankId         String?
-  country        Country?             @relation(fields: [countryId], references: [id])
-  countryId      String?
-  organization   Organization?        @relation(fields: [organizationId], references: [id])
+  id        String @id @default(cuid())
+  firstName String
+  lastName  String
+
+  rank   Rank?   @relation(fields: [rankId], references: [id])
+  rankId String?
+
+  country   Country? @relation(fields: [countryId], references: [id])
+  countryId String?
+
+  // Ανήκει σε οργανισμό (π.χ. ΝΑΤΟ/Υπουργείο)
+  organization   Organization? @relation(fields: [organizationId], references: [id])
   organizationId String?
-  branch         ServiceBranch?       @relation(fields: [branchId], references: [id])
-  branchId       String?
-  email          String?
-  phone          String?
-  notes          String?
-  meetings       MeetingParticipant[]
-  postings       PersonPosting[] // <— ιστορικό τοποθετήσεων
-  status         ServiceStatus        @default(ACTIVE)
-  retiredAt      DateTime?
+
+  // ή/και εργάζεται σε εταιρεία
+  company   Company? @relation(fields: [companyId], references: [id])
+  companyId String?
+
+  branch   ServiceBranch? @relation(fields: [branchId], references: [id])
+  branchId String?
+
+  email            String?
+  phone            String?
+  notes            String?
+  personImagePaths Json?
+  meetings         MeetingParticipant[]
+  postings         PersonPosting[]
+  status           ServiceStatus        @default(ACTIVE)
+  retiredAt        DateTime?
 }
 
 model PersonPosting {
@@ -138,18 +243,17 @@ model PersonPosting {
   person   Person @relation(fields: [personId], references: [id])
   personId String
 
-  // Προορισμός: είτε Unit είτε Organization (ένα από τα δύο συνήθως)
-  unit           Unit?         @relation(fields: [unitId], references: [id])
-  unitId         String?
+  unit   Unit?   @relation(fields: [unitId], references: [id])
+  unitId String?
+
   organization   Organization? @relation(fields: [organizationId], references: [id])
   organizationId String?
 
-  // Προαιρετικά, αν η τοποθέτηση αφορά απευθείας χώρα/τοποθεσία
   country   Country? @relation(fields: [countryId], references: [id])
   countryId String?
 
   type         PostingType @default(TRANSFER)
-  position     String? // π.χ. Διοικητής, Επιτελής κ.λπ.
+  position     String?
   role         String?
   rankAtTime   Rank?       @relation(fields: [rankAtTimeId], references: [id])
   rankAtTimeId String?
@@ -167,48 +271,42 @@ model PersonPosting {
 }
 
 model Unit {
-  id                   String                @id @default(cuid())
-  name                 String
-  code                 String?
-  type                 UnitType
-  country              Country               @relation(fields: [countryId], references: [id])
-  countryId            String
-  parent               Unit?                 @relation("UnitToSubunits", fields: [parentId], references: [id])
-  parentId             String?
-  subunits             Unit[]                @relation("UnitToSubunits")
-  // Geo
-  latitude   Float?   // -90..90
-  longitude  Float?   // -180..180
+  id        String   @id @default(cuid())
+  name      String
+  code      String?
+  unitImage String?
+  type      UnitType
+  country   Country  @relation(fields: [countryId], references: [id])
+  countryId String
+  parent    Unit?    @relation("UnitToSubunits", fields: [parentId], references: [id])
+  parentId  String?
+  subunits  Unit[]   @relation("UnitToSubunits")
+
+  latitude  Float?
+  longitude Float?
+
   equipmentAssignments EquipmentAssignment[]
   postings             PersonPosting[]
-  @@index([latitude, longitude])         
+
+  @@index([latitude, longitude])
 }
 
 model Equipment {
-  id                String                @id @default(cuid())
-  name              String
-  model             String?
-  category          EquipmentCategory
-  manufacturer      Organization?         @relation(name: "ManufacturerOrg", fields: [manufacturerId], references: [id])
-  manufacturerId    String?
-  countryOfOrigin   Country?              @relation(name: "EquipmentOriginCountry", fields: [countryOfOriginId], references: [id])
-  countryOfOriginId String?
-  specs             Json?
-  assignments       EquipmentAssignment[]
-}
+  id       String            @id @default(cuid())
+  name     String
+  model    String?
+  category EquipmentCategory
 
-model Country {
-  id              String          @id @default(cuid())
-  name            String          @unique
-  iso2            String?         @unique
-  flagImage      String?         // URL ή path σε εικόνα/εικονίδιο  
-  organizations   Organization[]
-  branches        ServiceBranch[]
-  people          Person[]
-  units           Unit[]
-  equipmentOrigin Equipment[]     @relation("EquipmentOriginCountry")
-  meetings        Meeting[]
-  postings        PersonPosting[]
+  // Κατασκευαστής: Company (ΟΧΙ Organization πλέον)
+  manufacturer          Company? @relation(name: "ManufacturerCompany", fields: [manufacturerCompanyId], references: [id])
+  manufacturerCompanyId String?
+
+  // Χώρα προέλευσης
+  countryOfOrigin     Country?              @relation(name: "EquipmentOriginCountry", fields: [countryOfOriginId], references: [id])
+  countryOfOriginId   String?
+  equipmentImagePaths Json?
+  specs               Json?
+  assignments         EquipmentAssignment[]
 }
 
 model EquipmentAssignment {
@@ -223,16 +321,18 @@ model EquipmentAssignment {
 }
 
 model Meeting {
-  id             String               @id @default(cuid())
-  date           DateTime
-  location       String?
-  country        Country?             @relation(fields: [countryId], references: [id])
-  countryId      String?
-  organization   Organization?        @relation(fields: [organizationId], references: [id])
-  organizationId String?
-  summary        String?
-  topics         MeetingTopic[]
-  participants   MeetingParticipant[]
+  id                String        @id @default(cuid())
+  date              DateTime
+  location          String?
+  country           Country?      @relation(fields: [countryId], references: [id])
+  countryId         String?
+  organization      Organization? @relation(fields: [organizationId], references: [id])
+  organizationId    String?
+  summary           String?
+  meetingImagePaths Json?
+
+  topics       MeetingTopic[]
+  participants MeetingParticipant[]
 }
 
 model MeetingTopic {
@@ -255,16 +355,18 @@ model MeetingParticipant {
 }
 
 model Document {
-  id            String         @id @default(cuid())
-  title         String
-  filePath      String
-  fileType      String?
-  size          Int?
-  hash          String?
-  addedAt       DateTime       @default(now())
-  thumbnailPath String?
-  notes         String?
-  links         DocumentLink[]
+  id               String            @id @default(cuid())
+  title            String
+  filePath         String
+  fileType         String?
+  documentCategory DocumentCategory?
+  documentAction   DocumentAction?
+  size             Int?
+  hash             String?
+  addedAt          DateTime          @default(now())
+  thumbnailPath    String?
+  notes            String?
+  links            DocumentLink[]
 }
 
 model DocumentLink {
