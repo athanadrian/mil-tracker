@@ -1,17 +1,39 @@
+// src/lib/prisma.ts
 import { PrismaClient } from '@prisma/client';
+import path from 'node:path';
+import fs from 'node:fs';
 
-// Κρατάμε ένα singleton στον dev για να μη δημιουργούνται πολλαπλές συνδέσεις
+function toAbsoluteFileUrl(raw?: string) {
+  const fallbackAbs = path.resolve(process.cwd(), 'data', 'mil.db');
+  if (!raw) return `file:${fallbackAbs.replace(/\\/g, '/')}`;
+  if (raw.startsWith('file:./') || raw.startsWith('file:../')) {
+    const rel = raw.slice('file:'.length);
+    const abs = path.resolve(process.cwd(), rel);
+    return `file:${abs.replace(/\\/g, '/')}`;
+  }
+  return raw;
+}
+const finalUrl = toAbsoluteFileUrl(process.env.DATABASE_URL);
+
+// ensure folder/file (dev/first run)
+try {
+  const absPath = finalUrl.replace(/^file:/, '');
+  const dir = path.dirname(absPath);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  if (!fs.existsSync(absPath)) fs.writeFileSync(absPath, '');
+} catch {}
+
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
-    // Λιγότερα logs σε prod, περισσότερα σε dev αν θέλεις
     log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
-    // (προαιρετικό) Αν θέλεις να “κλειδώσεις” datasource από env:
-    // datasources: { db: { url: process.env.DATABASE_URL } },
+    datasources: { db: { url: finalUrl } },
   });
 
-if (process.env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma = prisma;
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+
+if (process.env.NODE_ENV === 'development') {
+  console.log('Prisma using DATABASE_URL =', finalUrl);
 }

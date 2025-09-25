@@ -1,14 +1,18 @@
+/* app/globals.css */
 @import 'tailwindcss';
+@plugin "tailwindcss-animate";
 
-@plugin 'tailwindcss-animate';
+/* (προαιρετικά) σκοτεινή παραλλαγή */
+@custom-variant dark (&:where(.dark, .dark *));
 
-@custom-variant dark (&:is(.dark *));
-
+/* Θέμα/μεταβλητές Tailwind v4 */
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+
+  /* map στις "Tailwind colors" για χρήση ως text-foreground, bg-card κ.λπ. */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -42,6 +46,7 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/* Light theme vars */
 :root {
   --radius: 0.625rem;
   --background: oklch(1 0 0);
@@ -77,6 +82,7 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
+/* Dark theme vars */
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
@@ -111,9 +117,11 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* Βασικές εφαρμογές */
 @layer base {
+  /* Θέτεις ΜΟΝΟ το χρώμα του border default. Για να δεις περίγραμμα, βάλε κλάση `border` εκεί που θες. */
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
   }
   body {
     @apply bg-background text-foreground;

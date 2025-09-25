@@ -1,8 +1,6 @@
-// electron/ipc/files.cjs
 function registerFileIpc({ ipcMain, dialog, shell, getWin, log }) {
   ipcMain.handle('file:pick', async (_evt, opts) => {
-    const win = getWin ? getWin() : undefined;
-    const res = await dialog.showOpenDialog(win, {
+    const res = await dialog.showOpenDialog(getWin(), {
       properties: ['openFile', 'multiSelections'],
       filters: opts?.filters,
     });
@@ -16,13 +14,8 @@ function registerFileIpc({ ipcMain, dialog, shell, getWin, log }) {
   });
 
   ipcMain.handle('file:showInFolder', async (_evt, filePath) => {
-    try {
-      shell.showItemInFolder(filePath);
-      return { ok: true };
-    } catch (e) {
-      log?.('file:showInFolder error', e?.message || e);
-      return { ok: false, error: String(e?.message || e) };
-    }
+    if (filePath) shell.showItemInFolder(filePath);
+    return { ok: true };
   });
 }
 

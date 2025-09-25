@@ -1,12 +1,20 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-contextBridge.exposeInMainWorld('api', {
-  pickFiles: (filters) => ipcRenderer.invoke('file:pick', { filters }),
-  openFile: (filePath) => ipcRenderer.invoke('file:open', filePath),
-  showInFolder: (filePath) => ipcRenderer.invoke('file:showInFolder', filePath),
+const CH = {
+  files: {
+    pick: 'file:pick',
+    open: 'file:open',
+    showInFolder: 'file:showInFolder',
+  },
+};
 
-  listCountries: () => ipcRenderer.invoke('countries:list'),
-  createCountry: (data) => ipcRenderer.invoke('countries:create', data),
+const api = {
+  files: {
+    pick: (filters) => ipcRenderer.invoke(CH.files.pick, { filters }),
+    open: (filePath) => ipcRenderer.invoke(CH.files.open, filePath),
+    showInFolder: (filePath) =>
+      ipcRenderer.invoke(CH.files.showInFolder, filePath),
+  },
+};
 
-  addDocuments: (docs) => ipcRenderer.invoke('documents:add', docs),
-});
+contextBridge.exposeInMainWorld('api', Object.freeze(api));

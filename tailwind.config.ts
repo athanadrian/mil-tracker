@@ -1,4 +1,5 @@
+// tailwind.config.ts (προαιρετικό)
 import type { Config } from 'tailwindcss';
 export default {
-  content: ['app/**/*.{ts,tsx}', 'src/**/*.{ts,tsx}'],
+  // άστο κενό ή πρόσθεσε μόνο custom theme/plugins αν θες
 } satisfies Config;

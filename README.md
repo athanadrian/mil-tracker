@@ -23,3 +23,13 @@ npm run dist:win
 DATABASE_URL="file:../data/mil.db" npx prisma migrate dev --name .........
 npx prisma generate --schema=prisma/schema.prisma
 ```
+
+```cmd
+WIN
+set MIL_DEBUG=1 && "C:\Users\group8\Documents\DEV\ai-e-nis\mil-tracker\dist\win-unpacked\Mil Tracker.exe"
+MAC
+MIL_DEBUG=1 /Applications/Mil\ Tracker.app/Contents/MacOS/Mil\ Tracker
+
+
+DATABASE_URL="file:./data/mil.db"
+```
