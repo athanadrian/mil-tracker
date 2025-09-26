@@ -1,7 +1,7 @@
 'use server';
 import { prisma } from '@/lib/db';
 
-export type Counts = {
+export type CountsType = {
   countries: number;
   organizations: number;
   companies: number;
@@ -21,7 +21,7 @@ export type Counts = {
   documentLinks: number;
 };
 
-export async function getDashboardCounts(): Promise<Counts> {
+export async function getDashboardCounts(): Promise<CountsType> {
   const [
     countries,
     organizations,

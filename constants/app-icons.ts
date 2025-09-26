@@ -19,7 +19,10 @@ import { PiFlagLight, PiGitBranchBold, PiTrashThin } from 'react-icons/pi';
 import { FaGun, FaUserSecret } from 'react-icons/fa6';
 import { CiSearch, CiEdit, CiBoxes } from 'react-icons/ci';
 import { BiLogOutCircle, BiCategory } from 'react-icons/bi';
-import { HiOutlineChevronRight } from 'react-icons/hi2';
+import {
+  HiOutlineChevronRight,
+  HiOutlineBuildingOffice2,
+} from 'react-icons/hi2';
 import { TbDots } from 'react-icons/tb';
 import {
   LiaGlobeSolid,
@@ -49,13 +52,20 @@ export const appIcons = {
   logo: LogoIcon,
   dashboard: MdDashboard,
   intel: FaSitemap,
-  weapons: FaGun,
-  settings: FiSettings,
-  papers: IoMdPaper,
-  tools: FaTools,
-  users: FaUserSecret,
-  military: FaPersonMilitaryRifle,
 
+  // MAIN ENTITIES
+  personnel: FaPersonMilitaryRifle,
+  civilPersonnel: FaPersonMilitaryRifle,
+  militaryPersonnel: FaPersonMilitaryRifle,
+  companies: HiOutlineBuildingOffice2,
+  equipment: FaGun,
+  tools: FaTools,
+  documents: IoMdPaper,
+
+  settings: FiSettings,
+  users: FaUserSecret,
+
+  // LOOK-UP
   countries: MdFireplace,
   regions: LiaGlobeSolid,
   organizations: SiAwsorganizations,
@@ -69,6 +79,7 @@ export const appIcons = {
   departments: BsSignIntersectionT,
   sectors: VscTypeHierarchySub,
   positions: GoWorkflow,
+
   light: MdWbSunny,
   dark: GoMoon,
   // ACTIONS

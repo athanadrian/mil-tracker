@@ -1,19 +1,12 @@
 import { getDashboardCounts } from '@/actions/dashboard.actions';
-import { Stat } from '@/components/common';
-import { appIcons } from '@/constants/app-icons';
+import { StatsContainer } from '@/components/dashboard';
 
 const Dashboard = async () => {
   const [counts] = await Promise.all([getDashboardCounts()]);
 
   return (
     <div className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4'>
-      <Stat
-        //key={item.href}
-        icon={appIcons.countries /* μπορεί να είναι function ή string */}
-        label='Χώρες'
-        value={counts?.countries}
-        //href={item.href}
-      />
+      <StatsContainer counts={counts} />
       <div className='rounded-2xl border p-4'>
         <div className='text-sm opacity-60'>Χώρες</div>
         <div className='text-3xl font-semibold'>{counts.countries}</div>
