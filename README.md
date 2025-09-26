@@ -33,3 +33,8 @@ MIL_DEBUG=1 /Applications/Mil\ Tracker.app/Contents/MacOS/Mil\ Tracker
 
 DATABASE_URL="file:./data/mil.db"
 ```
+
+> Καθάρισμα main.cjs
+> Καθάρισμα package.json
+> Καθάρισμα global.d.ts
+> Καθάρισμα
