@@ -1,3 +1,3 @@
-import AppIcon from './AppIcon';
+import AppIcon, { type IconLike } from './AppIcon';
 
-export { AppIcon };
+export { AppIcon, IconLike };

@@ -34,22 +34,22 @@ const Stat: React.FC<StatProps> = ({
   onClick,
   className,
   iconClassName,
-  iconSize = 16,
+  iconSize = 20,
 }) => {
   const CardInner = (
     <div
       className={cn(
-        'rounded-md border bg-muted/30 p-3 transition-colors',
+        'rounded-lg p-4 border bg-muted/30 transition-colors',
         href && 'hover:bg-muted/40 focus-visible:outline-none',
         className
       )}
     >
-      <div className='flex items-center gap-2 text-muted-foreground text-xs'>
+      <div className='flex items-center gap-2 text-muted-foreground text-sm'>
         <AppIcon icon={icon} size={iconSize} className={iconClassName} />
         <span className='truncate'>{label}</span>
       </div>
 
-      <div className='mt-1 text-lg font-semibold'>{value}</div>
+      <div className='mt-1 text-xl font-semibold'>{value}</div>
 
       {hint ? (
         <div className='mt-0.5 text-xs text-muted-foreground'>{hint}</div>

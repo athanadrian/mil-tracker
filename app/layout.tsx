@@ -1,9 +1,17 @@
 import { ReactNode } from 'react';
 import { Noto_Sans, JetBrains_Mono } from 'next/font/google';
+import { cookies } from 'next/headers';
 
 import { AppSidebar, Navbar } from '@/components/layout';
 import { ThemeProvider } from '@/providers/theme-provider';
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+  useSidebar,
+} from '@/components/ui/sidebar';
 import './globals.css';
+import InsetWithOffset from '@/components/layout/InsetWithOffset';
 
 export const metadata = { title: 'Military Asset Tracker' };
 
@@ -21,7 +29,10 @@ export const jetMono = JetBrains_Mono({
   weight: ['400', '500', '600', '700'],
 });
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+const RootLayout = async ({ children }: { children: ReactNode }) => {
+  const cookieStore = await cookies();
+  const defaultOpen = cookieStore.get('sidebar_state')?.value === 'true';
+
   return (
     <html lang='en' suppressHydrationWarning>
       <body
@@ -33,13 +44,18 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           enableSystem
           disableTransitionOnChange
         >
-          <AppSidebar />
-          <main className='w-full'>
-            <Navbar />
-            <div className='px-4'>{children}</div>
-          </main>
+          <SidebarProvider defaultOpen={defaultOpen}>
+            <AppSidebar />
+            <main className='w-full'>
+              <InsetWithOffset>
+                <Navbar />
+                <div className='px-2 py-4'>{children}</div>
+              </InsetWithOffset>
+            </main>
+          </SidebarProvider>
         </ThemeProvider>
       </body>
     </html>
   );
-}
+};
+export default RootLayout;

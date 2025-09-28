@@ -40,14 +40,17 @@ function getLogPath() {
 }
 function log(...args) {
   const line = `[${new Date().toISOString()}] ${args
-    .map((x) => {
-      if (typeof x === 'string') return x;
-      try {
-        return JSON.stringify(x);
-      } catch {
-        return String(x);
-      }
-    })
+    .map((x) =>
+      typeof x === 'string'
+        ? x
+        : (() => {
+            try {
+              return JSON.stringify(x);
+            } catch {
+              return String(x);
+            }
+          })()
+    )
     .join(' ')}\n`;
   try {
     fs.appendFileSync(getLogPath(), line, 'utf8');
@@ -66,7 +69,7 @@ if (!app.requestSingleInstanceLock()) {
   });
 }
 
-/* ===== Helpers ===== */
+/* ===== Small helpers ===== */
 function ensureDir(p) {
   try {
     fs.mkdirSync(p, { recursive: true });
@@ -116,11 +119,56 @@ function getStartPath() {
   return process.env.MIL_START_PATH || '/';
 }
 
+/* ===== Dir copy (public/.next assets -> standalone) ===== */
+function copyDirSync(src, dest) {
+  try {
+    fs.mkdirSync(dest, { recursive: true });
+    for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+      const s = path.join(src, entry.name);
+      const d = path.join(dest, entry.name);
+      if (entry.isDirectory()) copyDirSync(s, d);
+      else fs.copyFileSync(s, d);
+    }
+  } catch (e) {
+    log('copyDirSync error:', e?.message || e, src, '->', dest);
+  }
+}
+
 /* ===== Next server (prod) ===== */
 async function bootNextInProd() {
-  const serverJs = path.join(APP_ROOT(), '.next', 'standalone', 'server.js');
+  const appRoot = APP_ROOT(); // resources/app
+  const standaloneDir = path.join(appRoot, '.next', 'standalone'); // resources/app/.next/standalone
+  const serverJs = path.join(standaloneDir, 'server.js');
   if (!fs.existsSync(serverJs))
     throw new Error('Next standalone server.js not found');
+
+  // Πηγές (πακεταρισμένα από electron-builder "files")
+  const srcStatic = path.join(appRoot, '.next', 'static');
+  const srcBuildId = path.join(appRoot, '.next', 'BUILD_ID');
+  const srcPublic = path.join(appRoot, 'public');
+
+  // Προορισμοί (εκεί που σερβίρει ο standalone server)
+  const dstNextRoot = path.join(standaloneDir, '.next');
+  const dstStatic = path.join(dstNextRoot, 'static');
+  const dstBuildId = path.join(dstNextRoot, 'BUILD_ID');
+  const dstPublic = path.join(standaloneDir, 'public');
+
+  // 🔁 Συγχρονισμός assets ΠΡΙΝ το boot
+  try {
+    if (fs.existsSync(srcStatic)) {
+      copyDirSync(srcStatic, dstStatic);
+    }
+    if (fs.existsSync(srcBuildId)) {
+      fs.mkdirSync(dstNextRoot, { recursive: true });
+      fs.copyFileSync(srcBuildId, dstBuildId);
+    }
+    if (fs.existsSync(srcPublic)) {
+      copyDirSync(srcPublic, dstPublic);
+    }
+    log('Assets synced to standalone');
+  } catch (e) {
+    log('Asset sync error:', e?.message || e);
+  }
 
   const env = {
     ...process.env,
@@ -130,11 +178,10 @@ async function bootNextInProd() {
     DATABASE_URL: `file:${PROD_DB()}`,
   };
 
-  // stdio: 'ignore' για καθαρή/γρήγορη εκκίνηση
   nextChild = fork(serverJs, [], {
     env,
     cwd: path.dirname(serverJs), // standalone working dir
-    stdio: 'ignore',
+    stdio: 'ignore', // πιο «ήσυχο»/γρήγορο boot
     detached: false,
   });
   nextChild.on('error', (e) => log('Next child error:', e?.message || e));
@@ -204,12 +251,8 @@ async function createWindow() {
 
   const url = `http://localhost:${PORT}${startPath}`;
 
-  win.once('ready-to-show', () => {
-    win.show();
-  });
-  win.on('closed', () => {
-    /* no-op */
-  });
+  win.once('ready-to-show', () => win.show());
+  win.on('closed', () => {});
   win.webContents.on('did-fail-load', (_e, code, desc, failedUrl) =>
     log('did-fail-load', String(code), desc, failedUrl)
   );

@@ -9,7 +9,13 @@ import {
   MdLockReset,
   MdWbSunny,
 } from 'react-icons/md';
-import { FiSettings } from 'react-icons/fi';
+import {
+  FiChevronDown,
+  FiChevronLeft,
+  FiChevronRight,
+  FiChevronUp,
+  FiSettings,
+} from 'react-icons/fi';
 import { RiUser2Line, RiUserSettingsLine, RiAdminLine } from 'react-icons/ri';
 import { LuCommand, LuChevronDown, LuArrowUpDown } from 'react-icons/lu';
 import { IoMdPaper } from 'react-icons/io';
@@ -18,7 +24,7 @@ import { IoAdd, IoDownloadSharp } from 'react-icons/io5';
 import { PiFlagLight, PiGitBranchBold, PiTrashThin } from 'react-icons/pi';
 import { FaGun, FaUserSecret } from 'react-icons/fa6';
 import { CiSearch, CiEdit, CiBoxes } from 'react-icons/ci';
-import { BiLogOutCircle, BiCategory } from 'react-icons/bi';
+import { BiLogOutCircle, BiCategory, BiSolidCity } from 'react-icons/bi';
 import {
   HiOutlineChevronRight,
   HiOutlineBuildingOffice2,
@@ -71,9 +77,12 @@ export const appIcons = {
   organizations: SiAwsorganizations,
   branches: PiGitBranchBold,
   directorates: LuCommand,
-  mainUnits: CiBoxes,
-  interimUnits: LiaBoxesSolid,
+
+  headQuarters: BiSolidCity,
+  formations: CiBoxes,
   units: BsBox,
+  subUnits: LiaBoxesSolid,
+
   docTypes: BsFiletypeDoc,
   docTypeCategories: BiCategory,
   departments: BsSignIntersectionT,
@@ -82,6 +91,12 @@ export const appIcons = {
 
   light: MdWbSunny,
   dark: GoMoon,
+
+  chevronDown: FiChevronDown,
+  chevronUp: FiChevronUp,
+  chevronLeft: FiChevronLeft,
+  chevronRight: FiChevronRight,
+
   // ACTIONS
   add: IoAdd,
   edit: CiEdit,

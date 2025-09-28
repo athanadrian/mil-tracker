@@ -1,29 +1,18 @@
+import type { AdminNavLink, AdminLookupLink } from '@/src/types/nav';
+
 import { appIcons } from './app-icons';
-import type { Route } from 'next';
 
-export type adminLink = {
-  label: string;
-  href: Route;
-  icon: any;
-  iconKey: string;
-  countKey?: string | null;
-  value?: string | null;
-  accessibility?: string;
-  type?: string;
-};
-
-export const adminLinks: readonly adminLink[] = [
+export const adminLinks: readonly AdminNavLink[] = [
   {
     label: 'Πίνακας Ελέγχου',
-    href: '/dashboard',
+    href: { pathname: '/' },
     icon: appIcons.dashboard,
     iconKey: 'dashboard',
-    countKey: null,
     accessibility: 'Πίνακας Ελέγχου',
   },
   {
     label: 'Προσωπικό',
-    href: '/personnel',
+    href: { pathname: '/personnel' },
     icon: appIcons.personnel,
     iconKey: 'personnel',
     countKey: 'personnel',
@@ -31,7 +20,7 @@ export const adminLinks: readonly adminLink[] = [
   },
   {
     label: 'Χώρες',
-    href: '/countries',
+    href: { pathname: '/countries' },
     icon: appIcons.countries,
     iconKey: 'countries',
     countKey: 'countries',
@@ -39,15 +28,15 @@ export const adminLinks: readonly adminLink[] = [
   },
   {
     label: 'Εξοπλισμοί',
-    href: '/buildings',
+    href: { pathname: '/equipments' },
     icon: appIcons.equipment,
-    iconKey: 'buildings',
-    countKey: 'buildings',
+    iconKey: 'equipments',
+    countKey: 'equipments',
     accessibility: 'Εξοπλισμοί',
   },
   {
     label: 'Εταιρείες',
-    href: '/companies',
+    href: { pathname: '/companies' },
     icon: appIcons.companies,
     iconKey: 'companies',
     countKey: 'companies',
@@ -55,7 +44,7 @@ export const adminLinks: readonly adminLink[] = [
   },
   {
     label: 'Έγγραφα',
-    href: '/documents',
+    href: { pathname: '/documents' },
     icon: appIcons.documents,
     iconKey: 'documents',
     countKey: 'documents',
@@ -63,7 +52,7 @@ export const adminLinks: readonly adminLink[] = [
   },
   {
     label: 'Εργαλεία',
-    href: '/tools',
+    href: { pathname: '/tools' },
     icon: appIcons.tools,
     iconKey: 'tools',
     countKey: 'tools',
@@ -71,10 +60,10 @@ export const adminLinks: readonly adminLink[] = [
   },
 ] as const;
 
-export const lookUpDataLinks: adminLink[] = [
+export const lookUpDataLinks: readonly AdminLookupLink[] = [
   {
     label: 'Διευθύνσεις',
-    href: '/admin/dashboard/tools/directorates',
+    href: { pathname: '/tools/directorates' },
     icon: appIcons.directorates,
     iconKey: 'directorates',
     countKey: 'directorates',
@@ -83,7 +72,7 @@ export const lookUpDataLinks: adminLink[] = [
   },
   {
     label: 'Τμήματα',
-    href: '/admin/dashboard/tools/departments',
+    href: { pathname: '/tools/departments' },
     icon: appIcons.departments,
     iconKey: 'departments',
     countKey: 'departments',
@@ -92,7 +81,7 @@ export const lookUpDataLinks: adminLink[] = [
   },
   {
     label: 'Τομείς',
-    href: '/admin/dashboard/tools/department-sectors',
+    href: { pathname: '/tools/department-sectors' },
     icon: appIcons.sectors,
     iconKey: 'departmentSectors',
     countKey: 'departmentSectors',
@@ -100,26 +89,38 @@ export const lookUpDataLinks: adminLink[] = [
     type: 'personnel',
   },
   {
-    label: 'Μείζονες Μονάδες',
-    href: '/admin/dashboard/tools/main-units',
-    icon: appIcons.mainUnits,
-    iconKey: 'mainUnits',
-    countKey: 'mainUnits',
-    value: 'mainUnits',
+    label: 'Αρχηγεία',
+    href: { pathname: '/tools/units', query: { type: 'hq' } },
+    icon: appIcons.headQuarters,
+    iconKey: 'headQuarters',
+    countKey: 'headQuarters',
+    value: 'headQuarters',
+    type: 'personnel',
+  },
+  {
+    label: 'Σχηματισμοί',
+    href: {
+      pathname: '/tools/units',
+      query: { type: 'formation' },
+    },
+    icon: appIcons.formations,
+    iconKey: 'formations',
+    countKey: 'formations',
+    value: 'formations',
     type: 'personnel',
   },
   {
     label: 'Υπο Μονάδες',
-    href: '/admin/dashboard/tools/interim-units',
-    icon: appIcons.interimUnits,
-    iconKey: 'interimUnits',
-    countKey: 'interimUnits',
-    value: 'interimUnits',
+    href: { pathname: '/tools/units', query: { type: 'subunit' } },
+    icon: appIcons.subUnits,
+    iconKey: 'subUnits',
+    countKey: 'subUnits',
+    value: 'subUnits',
     type: 'personnel',
   },
   {
     label: 'Μονάδες',
-    href: '/admin/dashboard/tools/units',
+    href: { pathname: '/tools/units', query: { type: 'unit' } },
     icon: appIcons.units,
     iconKey: 'units',
     countKey: 'units',
@@ -128,7 +129,7 @@ export const lookUpDataLinks: adminLink[] = [
   },
   {
     label: 'Κλάδοι',
-    href: '/admin/dashboard/tools/branches',
+    href: { pathname: '/tools/branches' },
     icon: appIcons.branches,
     iconKey: 'branches',
     countKey: 'branches',
@@ -137,7 +138,7 @@ export const lookUpDataLinks: adminLink[] = [
   },
   {
     label: 'Καθήκοντα',
-    href: '/admin/dashboard/tools/positions',
+    href: { pathname: '/tools/positions' },
     icon: appIcons.positions,
     iconKey: 'positions',
     countKey: 'positions',
@@ -145,8 +146,8 @@ export const lookUpDataLinks: adminLink[] = [
     type: 'personnel',
   },
   {
-    label: 'Τύποι Εγγράφων',
-    href: '/admin/dashboard/tools/docTypes',
+    label: 'Τύποι',
+    href: { pathname: '/tools/doc-types' },
     icon: appIcons.docTypes,
     iconKey: 'docTypes',
     countKey: 'docTypes',
@@ -154,8 +155,8 @@ export const lookUpDataLinks: adminLink[] = [
     type: 'documents',
   },
   {
-    label: 'Τύποι Εξερχομένων Εγγράφων',
-    href: '/admin/dashboard/tools/docTypeCategories',
+    label: 'Κατηγορίες',
+    href: { pathname: '/tools/doc-type-categories' },
     icon: appIcons.docTypeCategories,
     iconKey: 'docTypeCategories',
     countKey: 'docTypeCategories',
@@ -164,7 +165,7 @@ export const lookUpDataLinks: adminLink[] = [
   },
   {
     label: 'Χώρες',
-    href: '/staff/dashboard/tools/countries',
+    href: { pathname: '/tools/countries' },
     icon: appIcons.countries,
     iconKey: 'countries',
     countKey: 'countries',
@@ -172,8 +173,8 @@ export const lookUpDataLinks: adminLink[] = [
     type: 'application',
   },
   {
-    label: 'Γεωγραφικές Περιοχές',
-    href: '/staff/dashboard/tools/regions',
+    label: 'Περιοχές',
+    href: { pathname: '/tools/regions' },
     icon: appIcons.regions,
     iconKey: 'regions',
     countKey: 'regions',
@@ -182,7 +183,7 @@ export const lookUpDataLinks: adminLink[] = [
   },
   {
     label: 'Οργανισμοί',
-    href: '/staff/dashboard/tools/organizations',
+    href: { pathname: '/tools/organizations' },
     icon: appIcons.organizations,
     iconKey: 'organizations',
     countKey: 'organizations',
@@ -191,33 +192,19 @@ export const lookUpDataLinks: adminLink[] = [
   },
 ] as const;
 
-export const navLinks: adminLink[] = [
+export const navLinks: readonly AdminNavLink[] = [
   {
-    href: '/',
+    href: { pathname: '/' },
     label: 'Πίνακας Ελέγχου',
     icon: appIcons.dashboard,
     iconKey: 'dashboard',
     accessibility: 'Πίνακας Ελέγχου',
   },
-  //   {
-  //     href: '/reports ',
-  //     label: 'Αναφορές',
-  //     icon: appIcons.reports,
-  //     iconKey: 'reports',
-  //     accessibility: 'Αναφορές',
-  //   },
   {
-    href: '/profile ',
+    href: { pathname: '/profile' },
     label: 'Προφιλ',
     icon: appIcons.user_user,
     iconKey: 'user_user',
     accessibility: 'Προφιλ',
   },
-  //   {
-  //     href: '/admin/dashboard ',
-  //     label: 'Κεντρική Διαχείριση',
-  //     icon: appIcons.dashboard,
-  //     iconKey: 'admin',
-  //     accessibility: 'Κεντρική Διαχείριση',
-  //   },
-];
+] as const;

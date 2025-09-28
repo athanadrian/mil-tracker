@@ -80,6 +80,17 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --sidebar-width: 300px; /* expanded */
+  --sidebar-width-icon: calc(
+    var(--sidebar-rail-width, 12px) + var(--sidebar-icon-size, 20px) +
+      var(--sidebar-icon-gap-x, 24px) + var(--sidebar-border-width, 0px)
+  );
+  /* --sidebar-width-icon: 64px; collapsed */
+  --sidebar-rail-width: 12px; /* το λεπτό rail αριστερά */
+  --sidebar-icon-size: 20px; /* μέγεθος εικονιδίου στο collapsed */
+  --sidebar-icon-gap-x: 24px; /* συνολικό οριζόντιο padding γύρω από το icon (L+R) */
+  /* (προαιρετικό) */
+  --sidebar-border-width: 1px; /* αν έχεις border, θα το προσθέσεις στον calc */
 }
 
 /* Dark theme vars */
@@ -119,9 +130,8 @@
 
 /* Βασικές εφαρμογές */
 @layer base {
-  /* Θέτεις ΜΟΝΟ το χρώμα του border default. Για να δεις περίγραμμα, βάλε κλάση `border` εκεί που θες. */
   * {
-    @apply border-border;
+    @apply border-border outline-ring/50;
   }
   body {
     @apply bg-background text-foreground;
