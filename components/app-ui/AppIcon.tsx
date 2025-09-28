@@ -84,7 +84,7 @@ export interface AppIconProps {
   wrapperClassName?: string;
 }
 
-const AppIcon: React.FC<AppIconProps> = ({
+const AppIcon = ({
   icon,
   color,
   size = 20,
@@ -97,7 +97,7 @@ const AppIcon: React.FC<AppIconProps> = ({
   srText,
   ariaLabel,
   wrapperClassName,
-}) => {
+}: AppIconProps) => {
   const Element = tooltipText ? TooltipElement : PlainElement;
 
   const clickable = Boolean(link);

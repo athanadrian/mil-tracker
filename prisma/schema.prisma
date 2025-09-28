@@ -125,7 +125,7 @@ enum DocumentAction {
 
 model Region {
   id          String    @id @default(cuid())
-  title       String    @unique
+  name        String    @unique
   code        String?   @unique
   description String?
   countries   Country[]
@@ -277,7 +277,7 @@ model Rank {
 
 model Specialty {
   id          String         @id @default(cuid())
-  title       String         @unique
+  name       String         @unique
   code        String?        @unique
   description String?
 
@@ -292,7 +292,7 @@ model Specialty {
 
 model Position {
   id          String         @id @default(cuid())
-  title       String         @unique
+  name       String         @unique
   code        String?        @unique
   description String?
 
@@ -440,7 +440,7 @@ model MeetingTopic {
   id        String  @id @default(cuid())
   meeting   Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
   meetingId String
-  title     String
+  name     String
   notes     String?
 
   @@index([meetingId])
@@ -504,7 +504,7 @@ model PersonPosting {
 
 model Document {
   id               String            @id @default(cuid())
-  title            String
+  name            String
   filePath         String
   fileType         String?
   documentCategory DocumentCategory?
@@ -532,10 +532,10 @@ model DocumentLink {
 
 model Tag {
   id          String  @id @default(cuid())
-  title       String
+  name       String
   description String?
   type        String
   // σύνθετη μοναδικότητα (όπως στο παλιό)
-  @@unique([title, type])
+  @@unique([name, type])
   @@map("tags")
 }

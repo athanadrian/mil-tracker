@@ -238,6 +238,8 @@ async function createWindow() {
     show: false,
     width: 1280,
     height: 800,
+    minWidth: 768,
+    minHeight: 600,
     center: true,
     icon: resolveWindowIcon(),
     webPreferences: {

@@ -1,28 +1,15 @@
-import { getDashboardCounts } from '@/actions/dashboard.actions';
-import { StatsContainer } from '@/components/dashboard';
+import { AppPageBreadcrumbs, AppPageTitle } from '@/components/app-ui';
+import { StatsContainer } from '@/components/common';
 
 const Dashboard = async () => {
-  const [counts] = await Promise.all([getDashboardCounts()]);
-
   return (
-    <div className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4'>
-      <StatsContainer counts={counts} />
-      <div className='rounded-2xl border p-4'>
-        <div className='text-sm opacity-60'>Χώρες</div>
-        <div className='text-3xl font-semibold'>{counts.countries}</div>
-      </div>
-      <div className='rounded-2xl border p-4'>
-        <div className='text-sm opacity-60'>Οργανισμοί</div>
-        <div className='text-3xl font-semibold'>{counts.organizations}</div>
-      </div>
-      <div className='rounded-2xl border p-4'>
-        <div className='text-sm opacity-60'>Προσωπικό</div>
-        <div className='text-3xl font-semibold'>{counts.people}</div>
-      </div>
-      <div className='rounded-2xl border p-4'>
-        <div className='text-sm opacity-60'>Εξοπλισμός</div>
-        <div className='text-3xl font-semibold'>{counts.equipment}</div>
-      </div>
+    <div className='p-4 space-y-6'>
+      <AppPageBreadcrumbs base={{ href: '/', label: 'Πίνακας Ελέγχου' }} />
+      <AppPageTitle
+        title='Πίνακας Ελέγχου'
+        subtitle='Διαχείριση στοιχείων συστήματος'
+      />
+      <StatsContainer links='admin' />
     </div>
   );
 };

@@ -10,15 +10,11 @@ import {
 
 const prisma = new PrismaClient();
 
-async function upsertRegion(
-  title: string,
-  code?: string,
-  description?: string
-) {
+async function upsertRegion(name: string, code?: string, description?: string) {
   return prisma.region.upsert({
-    where: { title },
+    where: { name },
     update: { code, description },
-    create: { title, code, description },
+    create: { name, code, description },
   });
 }
 
@@ -63,26 +59,26 @@ async function upsertRank(
 
 async function upsertSpecialty(
   branchId: string | null,
-  title: string,
+  name: string,
   code?: string,
   description?: string
 ) {
   return prisma.specialty.upsert({
-    where: { title }, // title είναι unique
+    where: { name }, // name είναι unique
     update: { code, description, branchId: branchId || undefined },
-    create: { title, code, description, branchId: branchId || undefined },
+    create: { name, code, description, branchId: branchId || undefined },
   });
 }
 
 async function upsertPosition(
-  title: string,
+  name: string,
   code?: string,
   description?: string
 ) {
   return prisma.position.upsert({
-    where: { title }, // title unique
+    where: { name }, // name unique
     update: { code, description },
-    create: { title, code, description },
+    create: { name, code, description },
   });
 }
 
@@ -421,7 +417,7 @@ function amerOrEurope(europeId: string) {
 
 async function usRegionId(europeId: string) {
   // If you seeded an 'Americas' region above, you can resolve it here, else fallback to Europe
-  const amer = await prisma.region.findUnique({ where: { title: 'Americas' } });
+  const amer = await prisma.region.findUnique({ where: { name: 'Americas' } });
   return amer?.id ?? europeId;
 }
 

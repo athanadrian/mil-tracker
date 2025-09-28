@@ -1,8 +1,8 @@
-import type { AdminNavLink, AdminLookupLink } from '@/src/types/nav';
+import type { AdminNavLink, AdminLookupLink } from '@/types/nav';
 
 import { appIcons } from './app-icons';
 
-export const adminLinks: readonly AdminNavLink[] = [
+export const adminLinks = [
   {
     label: 'Πίνακας Ελέγχου',
     href: { pathname: '/' },
@@ -58,9 +58,9 @@ export const adminLinks: readonly AdminNavLink[] = [
     countKey: 'tools',
     accessibility: 'Εργαλεία',
   },
-] as const;
+] as const satisfies ReadonlyArray<AdminNavLink>;
 
-export const lookUpDataLinks: readonly AdminLookupLink[] = [
+export const lookUpDataLinks = [
   {
     label: 'Διευθύνσεις',
     href: { pathname: '/tools/directorates' },
@@ -190,7 +190,7 @@ export const lookUpDataLinks: readonly AdminLookupLink[] = [
     value: 'organizations',
     type: 'application',
   },
-] as const;
+] as const satisfies ReadonlyArray<AdminLookupLink>;
 
 export const navLinks: readonly AdminNavLink[] = [
   {

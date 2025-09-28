@@ -38,3 +38,24 @@ DATABASE_URL="file:./data/mil.db"
 > Καθάρισμα package.json
 > Καθάρισμα global.d.ts
 > Καθάρισμα
+
+> **\*** add migration after setting up DB prisma
+
+```bash
+npx prisma migrate dev --name (migration distinctive name)
+```
+
+> **\*\*** reset migrations
+
+```bash m -rf prisma/migrations // delete folder
+npx prisma migrate reset // reset migrations
+npx prisma migrate dev --name init  //set initial migration
+```
+
+```bash
+Μετά από οποιοδήποτε write (create/update/delete) που επηρεάζει counts, κάλεσε:
+
+import { revalidateSidebarCounts } from '@/actions/sidebar-counts'
+
+await revalidateSidebarCounts()
+```

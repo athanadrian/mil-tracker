@@ -1,3 +1,6 @@
-import AppIcon, { type IconLike } from './AppIcon';
+import AppIcon from './AppIcon';
+import AppPageBreadcrumbs from './AppPageBreadcrumbs';
+import AppPageTitle from './AppPageTitle';
 
-export { AppIcon, IconLike };
+export { AppIcon, AppPageBreadcrumbs, AppPageTitle };
+export type { AppIconProps, IconLike } from './AppIcon';

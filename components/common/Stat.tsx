@@ -25,7 +25,7 @@ export interface StatProps {
   iconSize?: number;
 }
 
-const Stat: React.FC<StatProps> = ({
+const Stat = ({
   icon,
   label,
   value,
@@ -35,7 +35,7 @@ const Stat: React.FC<StatProps> = ({
   className,
   iconClassName,
   iconSize = 20,
-}) => {
+}: StatProps) => {
   const CardInner = (
     <div
       className={cn(

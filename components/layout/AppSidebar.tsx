@@ -25,11 +25,11 @@ import { AppIcon } from '@/components/app-ui';
 import { appIcons } from '@/constants/app-icons';
 import { CollapsibleMenuItem } from '@/components/layout';
 import { adminLinks, lookUpDataLinks } from '@/constants/links';
-import type { Grouped, AdminCounts } from '@/src/types/nav';
-import { initialCounts } from '@/src/types/nav';
+import { Grouped } from '@/types/nav';
+import { useCounts } from '@/providers/AdminDataProvider';
 
-export default function AdminSidebar(): React.JSX.Element {
-  const counts: AdminCounts = initialCounts;
+const AdminSidebar = () => {
+  const { counts } = useCounts();
 
   const groups = React.useMemo<Grouped>(() => {
     return lookUpDataLinks.reduce<Grouped>(
@@ -215,4 +215,5 @@ export default function AdminSidebar(): React.JSX.Element {
       <SidebarRail />
     </Sidebar>
   );
-}
+};
+export default AdminSidebar;

@@ -70,7 +70,9 @@
     "dist:mac": "npm run prisma:generate && npm run build && cross-env CSC_IDENTITY_AUTO=false electron-builder --mac dmg zip",
     "dist:mac:universal": "npm run prisma:generate && npm run build && cross-env CSC_IDENTITY_AUTO=false electron-builder --mac universal",
     "dist:mac:signed": "npm run prisma:generate && npm run build && electron-builder --mac dmg zip",
-    "clean": "rimraf .next dist"
+    "clean": "rimraf .next dist",
+    "db:reset:file": "rimraf ../data/mil.db",
+    "db:init": "cross-env DATABASE_URL=file:../data/mil.db prisma migrate dev --schema=prisma/schema.prisma --name init && cross-env DATABASE_URL=file:./data/mil.db prisma generate"
   },
   "keywords": [],
   "author": "",

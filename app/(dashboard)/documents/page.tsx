@@ -1,7 +1,10 @@
+import { EmptyState } from '@/components/common';
+import { appIcons } from '@/constants/app-icons';
+
 const DocumentsPage = () => {
   return (
     <div className='space-y-4'>
-      <div className='grid gap-2'>DocumentsPage</div>
+      <EmptyState icon='documents' label='Έγγραφα' />
     </div>
   );
 };

@@ -12,6 +12,8 @@ import {
 } from '@/components/ui/sidebar';
 import './globals.css';
 import InsetWithOffset from '@/components/layout/InsetWithOffset';
+import { getSidebarCounts } from '@/actions/common.actions';
+import { AppDataProvider } from '@/providers/AdminDataProvider';
 
 export const metadata = { title: 'Military Asset Tracker' };
 
@@ -30,9 +32,13 @@ export const jetMono = JetBrains_Mono({
 });
 
 const RootLayout = async ({ children }: { children: ReactNode }) => {
-  const cookieStore = await cookies();
-  const defaultOpen = cookieStore.get('sidebar_state')?.value === 'true';
+  const [cookieStore, counts] = await Promise.all([
+    cookies(),
+    getSidebarCounts(),
+  ]);
 
+  const defaultOpen = cookieStore.get('sidebar_state')?.value === 'true';
+  const initial = { counts };
   return (
     <html lang='en' suppressHydrationWarning>
       <body
@@ -44,15 +50,17 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
           enableSystem
           disableTransitionOnChange
         >
-          <SidebarProvider defaultOpen={defaultOpen}>
-            <AppSidebar />
-            <main className='w-full'>
-              <InsetWithOffset>
-                <Navbar />
-                <div className='px-2 py-4'>{children}</div>
-              </InsetWithOffset>
-            </main>
-          </SidebarProvider>
+          <AppDataProvider initial={initial}>
+            <SidebarProvider defaultOpen={defaultOpen}>
+              <AppSidebar />
+              <main className='w-full'>
+                <InsetWithOffset>
+                  <Navbar />
+                  <div className='px-2 py-4'>{children}</div>
+                </InsetWithOffset>
+              </main>
+            </SidebarProvider>
+          </AppDataProvider>
         </ThemeProvider>
       </body>
     </html>
