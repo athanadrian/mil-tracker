@@ -46,6 +46,9 @@ export type PersonDTO = {
   status: ServiceStatus;
   retiredYear: number | null;
 
+  /** JSON από τη βάση (avatar, gallery κ.λπ.) */
+  personImagePaths: Prisma.JsonValue | null;
+
   country?: { id: string; name: string } | null;
   branch?: { id: string; name: string; code?: string | null } | null;
   rank?: { id: string; name: string; code?: string | null } | null;
@@ -106,7 +109,6 @@ function toISO(d: Date | null | undefined): string | null {
 /* =======================
    Server Action
 ======================= */
-
 export const getPersonnelData = async (
   filters: PersonFilters = {},
   paging: Paging = {}
@@ -115,7 +117,6 @@ export const getPersonnelData = async (
   const take = Math.min(200, Math.max(1, paging.pageSize ?? 50));
   const skip = (page - 1) * take;
 
-  // SQLite: χωρίς mode: 'insensitive'
   const where: Prisma.PersonWhereInput = {
     ...(filters.search
       ? {
@@ -132,7 +133,7 @@ export const getPersonnelData = async (
     ...(filters.type ? { type: filters.type } : {}),
   };
 
-  const persons: PersonWithRelations[] = await prisma.person.findMany({
+  const persons = await prisma.person.findMany({
     where,
     include: {
       country: { select: { id: true, name: true } },
@@ -208,6 +209,7 @@ export const getPersonnelData = async (
       type: p.type,
       status: p.status,
       retiredYear,
+      personImagePaths: (p.personImagePaths ?? null) as Prisma.JsonValue | null,
       country: p.country ? { id: p.country.id, name: p.country.name } : null,
       branch: p.branch
         ? { id: p.branch.id, name: p.branch.name, code: p.branch.code }
@@ -223,8 +225,6 @@ export const getPersonnelData = async (
 
   return result;
 };
-
-/* ================== Single person (by id) ================== */
 
 /* ================== Single person (by id) ================== */
 
@@ -272,6 +272,9 @@ export type PersonDetailDTO = {
 
   email?: string | null;
   phone?: string | null;
+
+  /** JSON από τη βάση (avatar, gallery κ.λπ.) */
+  personImagePaths: Prisma.JsonValue | null;
 
   country: { id: string; name: string; iso2?: string | null } | null;
   branch: { id: string; name: string; code?: string | null } | null;
@@ -332,9 +335,8 @@ export async function getPersonById(
 
   if (!p) return null;
 
-  // Προσοχή: δεν χρησιμοποιούμε enum value imports — κάνουμε σύγκριση με literal
   const retiredYear =
-    p.status === ('RETIRED' as ServiceStatus) && p.retiredAt
+    p.status === 'RETIRED' && p.retiredAt
       ? new Date(p.retiredAt).getFullYear()
       : null;
 
@@ -402,6 +404,8 @@ export async function getPersonById(
 
     email: p.email,
     phone: p.phone,
+
+    personImagePaths: (p.personImagePaths ?? null) as Prisma.JsonValue | null,
 
     country: p.country
       ? { id: p.country.id, name: p.country.name, iso2: p.country.iso2 }

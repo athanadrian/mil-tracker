@@ -4,12 +4,7 @@ import { cookies } from 'next/headers';
 
 import { AppSidebar, Navbar } from '@/components/layout';
 import { ThemeProvider } from '@/providers/theme-provider';
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-  useSidebar,
-} from '@/components/ui/sidebar';
+import { SidebarProvider } from '@/components/ui/sidebar';
 import './globals.css';
 import InsetWithOffset from '@/components/layout/InsetWithOffset';
 import { getSidebarCounts } from '@/actions/common.actions';
