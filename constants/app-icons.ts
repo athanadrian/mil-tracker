@@ -80,8 +80,8 @@ export const appIcons = {
 
   headQuarters: BiSolidCity,
   formations: CiBoxes,
-  units: BsBox,
-  subUnits: LiaBoxesSolid,
+  units: LiaBoxesSolid,
+  subUnits: BsBox,
 
   docTypes: BsFiletypeDoc,
   docTypeCategories: BiCategory,
