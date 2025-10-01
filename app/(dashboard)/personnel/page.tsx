@@ -21,7 +21,7 @@ const PersonnelPage = async ({ searchParams }: PersonnelPageProps) => {
       take: 30,
       sortBy: 'lastName',
       sortDir: 'asc',
-      filters: { q: 'Tank' },
+      filters,
     }),
   ]);
   console.log('personnel', initial);

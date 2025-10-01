@@ -4,7 +4,8 @@ import PersonnelTable from './PersonnelTable';
 import HeaderSkeleton from './skeletons/HeaderSkeleton';
 import CardsSkeleton from './skeletons/CardsSkeleton';
 import TableSkeleton from './skeletons/TableSkeleton';
-PersonCard;
+import { makePersonnelColumns, matchesQuery } from './personnel-columns';
+
 export {
   PersonnelContainer,
   PersonnelCards,
@@ -13,4 +14,6 @@ export {
   HeaderSkeleton,
   CardsSkeleton,
   TableSkeleton,
+  makePersonnelColumns,
+  matchesQuery,
 };

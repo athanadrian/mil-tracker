@@ -5,6 +5,7 @@ import AppErrorMessage from './AppErrorMessage';
 import AppTextInputField from './AppTextInputField';
 import AppSelect from './AppSelect';
 import AppMultiSelect from './AppMultiSelect';
+import AppDataTable from './AppDataTable';
 
 export {
   AppIcon,
@@ -14,5 +15,6 @@ export {
   AppTextInputField,
   AppSelect,
   AppMultiSelect,
+  AppDataTable,
 };
 export type { AppIconProps, IconLike } from './AppIcon';

@@ -2,7 +2,6 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Route } from 'next';
 
 import {
   fetchMorePersonnel,
@@ -27,11 +26,12 @@ import {
 import {
   CardsSkeleton,
   HeaderSkeleton,
+  matchesQuery,
   PersonnelCards,
-  PersonnelTable,
   TableSkeleton,
 } from '@/components/personnel';
 import { pushWithParams } from '@/lib/utils';
+import PersonnelDataTable from './PersonnelDataTable';
 
 type PersonnelContainerProps = {
   initial: PersonnelListPayload;
@@ -49,9 +49,8 @@ const SORTABLE_FIELDS = [
   { key: 'type', label: 'Τύπος' },
   { key: 'retiredAt', label: 'Έτος Αποστ.' },
 ];
-const PAGE_SIZE = 10;
-export const PERSONNEL_TABLE_CELLS = 10; //idx, name, rank, branch, country, status, type, images, meetings, actions
-
+export const PAGE_SIZE = 10;
+export const PERSONNEL_TABLE_CELLS = 10;
 const PersonnelContainer = ({
   initialFilters,
   initial,
@@ -64,7 +63,7 @@ const PersonnelContainer = ({
     initial.nextCursor || null
   );
 
-  const [view, setView] = useState<'table' | 'cards'>('table'); // default table
+  const [view, setView] = useState<'table' | 'cards'>('table');
   const [pending, setPending] = useState(false);
   const [paginationVariant, setPaginationVariant] = useState<
     'pages' | 'loadMore'
@@ -86,62 +85,22 @@ const PersonnelContainer = ({
       ? initialFilters.countryId.join(',')
       : (initialFilters.countryId as any) || '',
   }));
+  const [pageIndex, setPageIndex] = useState(0);
+  const [pageSize, setPageSize] = useState(1);
 
-  // client-side text filtering for q (extra UX)
-  // const filteredRows = useMemo(() => {
-  //   const q = (filters.q || '').trim().toLowerCase();
-  //   if (!q) return rows;
-  //   return rows.filter((p) =>
-  //     [p.firstName, p.lastName, p.nickname]
-  //       .filter(Boolean)
-  //       .some((s) => String(s).toLowerCase().includes(q))
-  //   );
-  // }, [rows, filters.q]);
+  const filteredRows = useMemo(() => {
+    return rows.filter((p) => {
+      if (!matchesQuery(p, filters.q)) return false;
 
-  // const filteredRows = useMemo(() => {
-  //   const q = (filters.q || '').trim().toLowerCase();
-  //   // Αν το q έχει ήδη σταλεί στον server (το κάνεις), μην το ξανα-εφαρμόζεις εδώ
-  //   if (q) return rows;
-  //   return rows;
-  // }, [rows, filters.q]);
+      if (filters.personType && p.type !== filters.personType) return false;
+      if (filters.serviceStatus && p.status !== filters.serviceStatus)
+        return false;
 
-  // μετά (server-driven search = μην το ξανακάνεις client-side)
-  const filteredRows = useMemo(() => rows, [rows]);
+      return true;
+    });
+  }, [rows, filters.q, filters.personType, filters.serviceStatus]);
 
-  // const filteredRows = useMemo(() => {
-  //   const q = (filters.q || '').trim().toLowerCase();
-  //   if (!q) return rows;
-
-  //   const inStr = (v?: unknown) =>
-  //     v != null && String(v).toLowerCase().includes(q);
-
-  //   return rows.filter((p) => {
-  //     const haystack: unknown[] = [
-  //       p.firstName,
-  //       p.lastName,
-  //       p.nickname,
-  //       p.rank?.name,
-  //       p.rank?.code,
-  //       p.branch?.name,
-  //       p.country?.name,
-  //       // installations
-  //       ...(p.installations ?? []).flatMap((inst) => [
-  //         //inst.role,
-  //         inst.unit?.name,
-  //         inst.unit?.code,
-  //         inst.organization?.name,
-  //         inst.country?.name,
-  //         inst.position?.name,
-  //         inst.position?.code,
-  //         inst.rankAtTime?.name,
-  //         inst.rankAtTime?.code,
-  //       ]),
-  //       // promotions
-  //       ...(p.promotions ?? []).flatMap((pr) => [pr.rank?.name, pr.rank?.code]),
-  //     ];
-  //     return haystack.some(inStr);
-  //   });
-  // }, [rows, filters.q]);
+  console.log('rows.length', rows.length);
 
   // reset when initial changes
   useEffect(() => {
@@ -288,15 +247,6 @@ const PersonnelContainer = ({
     });
   };
 
-  // pagination config for table
-  const paginationConfig = {
-    paginationVariant,
-    pageSize: PAGE_SIZE,
-    hasServerMore: Boolean(nextCursor),
-    onServerLoadMore: handleServerLoadMore,
-    serverLoading: pending,
-  };
-
   return (
     <>
       {/* Header summary & toggles */}
@@ -331,16 +281,17 @@ const PersonnelContainer = ({
               )}
 
               {/* pagination mode selector */}
-              <AppSelect
-                value={paginationVariant}
-                onChange={(v: any) => setPaginationVariant(v)}
-                options={paginationOptions}
-                placeholder='Εμφάνιση'
-                showSelect
-                className='w-full sm:w-[200px]'
-                getLabel={(item: any) => item.label}
-              />
-
+              {view === 'cards' && (
+                <AppSelect
+                  value={paginationVariant}
+                  onChange={(v: any) => setPaginationVariant(v)}
+                  options={paginationOptions}
+                  placeholder='Εμφάνιση'
+                  showSelect
+                  className='w-full sm:w-[200px]'
+                  getLabel={(item: any) => item.label}
+                />
+              )}
               {/* toggle cards/table */}
               <Button
                 variant='outline'
@@ -364,18 +315,13 @@ const PersonnelContainer = ({
       <FiltersContainer
         schema={filtersSchema as any}
         filters={filters as any}
-        onChange={(delta: Record<string, string>) => {
-          const next = { ...filters, ...delta };
-          setFilters(next);
-          setPending(true);
-          // push only changed keys to URL
-          pushWithParams(searchParams, pathname, router, delta);
+        onChange={(delta) => {
+          setFilters((f) => ({ ...f, ...delta })); // q/personType/serviceStatus
+          setPageIndex(0); // reset page όταν αλλάζει φίλτρο
         }}
         onClearAll={() => {
-          const empty = { q: '', type: '', serviceStatus: '' };
-          setFilters(empty);
-          setPending(true);
-          router.push(pathname as Route, { scroll: false });
+          setFilters({ q: '', personType: '', serviceStatus: '' });
+          setPageIndex(0);
         }}
       />
       {/* Content */}
@@ -383,9 +329,10 @@ const PersonnelContainer = ({
         view === 'cards' ? (
           <CardsSkeleton cards={8} />
         ) : (
-          <TableSkeleton rows={10} cells={PERSONNEL_TABLE_CELLS}>
-            {/* Header skeleton row could be supplied here if needed */}
-          </TableSkeleton>
+          <TableSkeleton
+            rows={10}
+            cells={PERSONNEL_TABLE_CELLS}
+          ></TableSkeleton>
         )
       ) : view === 'cards' ? (
         <>
@@ -403,36 +350,32 @@ const PersonnelContainer = ({
           )}
         </>
       ) : (
-        <>
-          <PersonnelTable
-            rows={visibleRows}
-            sortBy={sortBy}
-            sortDir={sortDir}
-            onSort={onSort}
-          />
-          {paginationVariant === 'loadMore' && hasMoreLocal && (
-            <div className='mt-2'>
-              <TableSkeleton rows={10} cells={PERSONNEL_TABLE_CELLS} />
-            </div>
-          )}
-        </>
+        <PersonnelDataTable
+          rows={rows}
+          pageIndex={pageIndex}
+          pageSize={pageSize}
+          setPageIndex={setPageIndex}
+          setPageSize={setPageSize}
+          pageSizeOptions={[1, 10, 25, 50, 100]}
+        />
       )}
-
       {/* Pagination / Load more controls */}
-      <PaginationControls
-        variant={paginationVariant}
-        page={page}
-        totalPages={totalPages}
-        hasMore={
-          paginationVariant === 'loadMore'
-            ? Boolean(nextCursor)
-            : page < totalPages
-        }
-        onPrev={() => setPage((p) => Math.max(1, p - 1))}
-        onNext={() => setPage((p) => Math.min(totalPages, p + 1))}
-        onLoadMore={handleServerLoadMore}
-        className='mt-4'
-      />
+      {view === 'cards' && (
+        <PaginationControls
+          variant={paginationVariant}
+          page={page}
+          totalPages={totalPages}
+          hasMore={
+            paginationVariant === 'loadMore'
+              ? Boolean(nextCursor)
+              : page < totalPages
+          }
+          onPrev={() => setPage((p) => Math.max(1, p - 1))}
+          onNext={() => setPage((p) => Math.min(totalPages, p + 1))}
+          onLoadMore={handleServerLoadMore}
+          className='mt-4'
+        />
+      )}
     </>
   );
 };
