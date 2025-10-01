@@ -1,5 +1,17 @@
 import Stat from './Stat';
 import StatsContainer from './StatsContainer';
 import EmptyState from './EmptyState';
+import LoadingBar from './LoadingBar';
+import SortableTh from './SortableTh';
+import FiltersContainer from './FiltersContainer';
+import PaginationControls from './PaginationControls';
 
-export { Stat, StatsContainer, EmptyState };
+export {
+  Stat,
+  StatsContainer,
+  EmptyState,
+  LoadingBar,
+  SortableTh,
+  FiltersContainer,
+  PaginationControls,
+};

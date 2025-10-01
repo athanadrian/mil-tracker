@@ -21,10 +21,20 @@ import { LuCommand, LuChevronDown, LuArrowUpDown } from 'react-icons/lu';
 import { IoMdPaper } from 'react-icons/io';
 import { CgUserList } from 'react-icons/cg';
 import { IoAdd, IoDownloadSharp } from 'react-icons/io5';
-import { PiFlagLight, PiGitBranchBold, PiTrashThin } from 'react-icons/pi';
+import {
+  PiFlagLight,
+  PiGitBranchBold,
+  PiTrashThin,
+  PiCreditCardLight,
+} from 'react-icons/pi';
 import { FaGun, FaUserSecret } from 'react-icons/fa6';
 import { CiSearch, CiEdit, CiBoxes } from 'react-icons/ci';
-import { BiLogOutCircle, BiCategory, BiSolidCity } from 'react-icons/bi';
+import {
+  BiLogOutCircle,
+  BiCategory,
+  BiSolidCity,
+  BiSortAlt2,
+} from 'react-icons/bi';
 import {
   HiOutlineChevronRight,
   HiOutlineBuildingOffice2,
@@ -51,7 +61,7 @@ import {
   TbHexagonLetterE,
   TbHexagonLetterD,
 } from 'react-icons/tb';
-import { VscTypeHierarchySub } from 'react-icons/vsc';
+import { VscTypeHierarchySub, VscTable } from 'react-icons/vsc';
 import { LogoIcon } from './custom-icons';
 
 export const appIcons = {
@@ -97,7 +107,11 @@ export const appIcons = {
   chevronLeft: FiChevronLeft,
   chevronRight: FiChevronRight,
 
+  table: VscTable,
+  cards: PiCreditCardLight,
+
   // ACTIONS
+  sort: BiSortAlt2,
   add: IoAdd,
   edit: CiEdit,
   view: GoEye,

@@ -145,8 +145,6 @@ function AppSelect<TOption = any>({
             <SelectValue placeholder={placeholder} />
           )}
         </SelectTrigger>
-        /* @ts-expect-error: ορισμένες εκδόσεις shadcn/Select δεν τυπώνουν το
-        "container" */
         <SelectContent {...contentProps}>
           {options.map((item) => {
             const val = toStr(getOptionValue(item as TOption));

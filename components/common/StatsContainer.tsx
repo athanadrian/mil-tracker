@@ -26,11 +26,11 @@ const TYPE_TITLES: Record<string, string> = {
 
 const TYPE_ORDER = ['personnel', 'documents', 'application'];
 
-interface Props {
+interface StatsContainerProps {
   links: LinksMode; // 'admin' => adminLinks, 'tools' => lookUpDataLinks
 }
 
-const StatsContainer: React.FC<Props> = ({ links }) => {
+const StatsContainer = ({ links }: StatsContainerProps) => {
   const linksData: Links = links === 'admin' ? adminLinks : lookUpDataLinks;
   const { counts } = useCounts(); // παρέχει AdminCounts
 
