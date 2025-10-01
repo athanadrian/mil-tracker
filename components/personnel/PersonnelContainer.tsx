@@ -88,15 +88,60 @@ const PersonnelContainer = ({
   }));
 
   // client-side text filtering for q (extra UX)
-  const filteredRows = useMemo(() => {
-    const q = (filters.q || '').trim().toLowerCase();
-    if (!q) return rows;
-    return rows.filter((p) =>
-      [p.firstName, p.lastName, p.nickname]
-        .filter(Boolean)
-        .some((s) => String(s).toLowerCase().includes(q))
-    );
-  }, [rows, filters.q]);
+  // const filteredRows = useMemo(() => {
+  //   const q = (filters.q || '').trim().toLowerCase();
+  //   if (!q) return rows;
+  //   return rows.filter((p) =>
+  //     [p.firstName, p.lastName, p.nickname]
+  //       .filter(Boolean)
+  //       .some((s) => String(s).toLowerCase().includes(q))
+  //   );
+  // }, [rows, filters.q]);
+
+  // const filteredRows = useMemo(() => {
+  //   const q = (filters.q || '').trim().toLowerCase();
+  //   // Αν το q έχει ήδη σταλεί στον server (το κάνεις), μην το ξανα-εφαρμόζεις εδώ
+  //   if (q) return rows;
+  //   return rows;
+  // }, [rows, filters.q]);
+
+  // μετά (server-driven search = μην το ξανακάνεις client-side)
+  const filteredRows = useMemo(() => rows, [rows]);
+
+  // const filteredRows = useMemo(() => {
+  //   const q = (filters.q || '').trim().toLowerCase();
+  //   if (!q) return rows;
+
+  //   const inStr = (v?: unknown) =>
+  //     v != null && String(v).toLowerCase().includes(q);
+
+  //   return rows.filter((p) => {
+  //     const haystack: unknown[] = [
+  //       p.firstName,
+  //       p.lastName,
+  //       p.nickname,
+  //       p.rank?.name,
+  //       p.rank?.code,
+  //       p.branch?.name,
+  //       p.country?.name,
+  //       // installations
+  //       ...(p.installations ?? []).flatMap((inst) => [
+  //         //inst.role,
+  //         inst.unit?.name,
+  //         inst.unit?.code,
+  //         inst.organization?.name,
+  //         inst.country?.name,
+  //         inst.position?.name,
+  //         inst.position?.code,
+  //         inst.rankAtTime?.name,
+  //         inst.rankAtTime?.code,
+  //       ]),
+  //       // promotions
+  //       ...(p.promotions ?? []).flatMap((pr) => [pr.rank?.name, pr.rank?.code]),
+  //     ];
+  //     return haystack.some(inStr);
+  //   });
+  // }, [rows, filters.q]);
 
   // reset when initial changes
   useEffect(() => {

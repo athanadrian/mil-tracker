@@ -220,18 +220,95 @@ export const getPersonnelData = async ({
   const countryIds = norm(filters.countryId);
   const statuses = norm(filters.status);
   const types = norm(filters.type);
+
   const q = (filters.q || '').trim();
+  const txt = { contains: q }; // SQLite: χωρίς mode
+  const maybeYear = /^\d{4}$/.test(q) ? Number(q) : null;
+
+  const startOfYear = (y: number) => new Date(y, 0, 1);
+  const startOfNextYear = (y: number) => new Date(y + 1, 0, 1);
 
   const where: Prisma.PersonWhereInput = {
     ...(q
       ? {
           OR: [
-            { firstName: { contains: q } },
-            { lastName: { contains: q } },
-            { nickname: { contains: q } },
+            // Person text fields
+            { firstName: txt },
+            { lastName: txt },
+            { nickname: txt },
+
+            // current person relations (χρησιμοποίησε relation where)
+            { rank: { is: { name: txt } } },
+            { rank: { is: { code: txt } } },
+            { branch: { is: { name: txt } } },
+            { country: { is: { name: txt } } },
+
+            // PROMOTIONS
+            {
+              promotions: {
+                some: {
+                  OR: [
+                    { rank: { is: { name: txt } } },
+                    { rank: { is: { code: txt } } },
+                    ...(maybeYear ? [{ promotionYear: maybeYear }] : []),
+                  ],
+                },
+              },
+            },
+
+            // INSTALLATIONS / POSTINGS
+            {
+              postings: {
+                some: {
+                  OR: [
+                    { role: txt },
+                    { unit: { is: { name: txt } } },
+                    { unit: { is: { code: txt } } },
+                    { organization: { is: { name: txt } } },
+                    { country: { is: { name: txt } } },
+                    { position: { is: { name: txt } } },
+                    { position: { is: { code: txt } } },
+                    { rankAtTime: { is: { name: txt } } },
+                    { rankAtTime: { is: { code: txt } } },
+
+                    ...(maybeYear ? [{ installationYear: maybeYear }] : []),
+                    ...(maybeYear
+                      ? [
+                          {
+                            startDate: {
+                              gte: startOfYear(maybeYear),
+                              lt: startOfNextYear(maybeYear),
+                            },
+                          },
+                          {
+                            endDate: {
+                              gte: startOfYear(maybeYear),
+                              lt: startOfNextYear(maybeYear),
+                            },
+                          },
+                        ]
+                      : []),
+                  ],
+                },
+              },
+            },
+
+            // retiredAt στο ίδιο έτος (optional)
+            ...(maybeYear
+              ? [
+                  {
+                    retiredAt: {
+                      gte: startOfYear(maybeYear),
+                      lt: startOfNextYear(maybeYear),
+                    },
+                  },
+                ]
+              : []),
           ],
         }
       : {}),
+
+    // υπόλοιπα filters
     ...(branchIds.length ? { branchId: { in: branchIds } } : {}),
     ...(countryIds.length ? { countryId: { in: countryIds } } : {}),
     ...(statuses.length ? { status: { in: statuses } } : {}),
