@@ -473,10 +473,41 @@ export function AppDataTable<TData>({
   const totalPages = table.getPageCount() || 1;
   const canPrev = table.getCanPreviousPage();
   const canNext = table.getCanNextPage();
+
+  const goPrev = () => {
+    const next = Math.max(0, pageIndex - 1);
+    if (next !== pageIndex) setPageIndex(next);
+  };
+
+  const goNext = () => {
+    const next = Math.min(totalPages - 1, pageIndex + 1);
+    if (next !== pageIndex) setPageIndex(next);
+  };
+
   console.log(
     'table',
     table.getRowModel().rows.map((r) => r.id)
   );
+
+  React.useEffect(() => {
+    const pageCount = Math.max(1, Math.ceil(data.length / pageSize));
+    if (pageIndex > pageCount - 1) onPageIndexChange?.(pageCount - 1);
+    console.log('pageCount', pageCount);
+  }, [data.length, pageSize]);
+
+  console.log(
+    'row ids',
+    table.getRowModel().rows.map((r) => r.id)
+  );
+  console.log(
+    'rows',
+    data.length,
+    'state',
+    table.getState().pagination,
+    'orig ids',
+    table.getRowModel().rows.map((r) => (r.original as any)?.id)
+  );
+
   return (
     <div className={cn('rounded-md border overflow-x-auto', className)}>
       {/* Toolbar: Page size + Column visibility */}
@@ -595,26 +626,41 @@ export function AppDataTable<TData>({
 
       {/* Footer pagination controls */}
       <div className='flex items-center justify-center gap-2 p-2'>
-        <Button
+        {/* <Button
           variant='outline'
           size='icon'
           onClick={() => table.previousPage()}
           disabled={!canPrev}
           aria-label='Προηγούμενη σελίδα'
+        > */}
+        <Button
+          variant='outline'
+          size='icon'
+          onClick={goPrev}
+          disabled={pageIndex === 0}
         >
           <AppIcon icon={appIcons.chevronLeft} size={16} />
         </Button>
 
-        <span className='text-sm'>
+        {/* <span className='text-sm'>
           Σελίδα {table.getState().pagination.pageIndex + 1} από {totalPages}
+        </span> */}
+        <span className='text-sm'>
+          Σελίδα {pageIndex + 1} από {totalPages}
         </span>
 
-        <Button
+        {/* <Button
           variant='outline'
           size='icon'
           onClick={() => table.nextPage()}
           disabled={!canNext}
           aria-label='Επόμενη σελίδα'
+        > */}
+        <Button
+          variant='outline'
+          size='icon'
+          onClick={goNext}
+          disabled={pageIndex >= totalPages - 1}
         >
           <AppIcon icon={appIcons.chevronRight} size={16} />
         </Button>
