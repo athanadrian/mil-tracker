@@ -25,7 +25,7 @@ import { AppIcon } from '@/components/app-ui';
 import { appIcons } from '@/constants/app-icons';
 import { CollapsibleMenuItem } from '@/components/layout';
 import { adminLinks, lookUpDataLinks } from '@/constants/links';
-import { Grouped } from '@/types/nav';
+import { AdminCounts, AdminNavLink, Grouped } from '@/types/nav';
 import { useCounts } from '@/providers/AdminDataProvider';
 
 const AdminSidebar = () => {
@@ -40,6 +40,12 @@ const AdminSidebar = () => {
       { personnel: [], documents: [], application: [] }
     );
   }, []);
+
+  function hasCountKey(
+    link: AdminNavLink
+  ): link is AdminNavLink & { countKey: keyof AdminCounts } {
+    return typeof link.countKey !== 'undefined';
+  }
 
   return (
     <Sidebar
@@ -104,7 +110,9 @@ const AdminSidebar = () => {
                   href={link.href}
                   icon={link.icon}
                   label={link.label}
-                  badge={link.countKey ? counts[link.countKey] ?? 0 : undefined}
+                  badge={
+                    hasCountKey(link) ? counts[link.countKey] ?? 0 : undefined
+                  }
                   accessibility={link.accessibility}
                 />
               ))}

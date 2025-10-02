@@ -61,5 +61,36 @@ await revalidateSidebarCounts()
 ```
 
 ```js
+// ΠΑΡΑΔΕΙΓΜΑ ΧΡΣΗΣΗΣ REVALIDATE TAG
+'use server';
 
+import { prisma } from '@/lib/db';
+import { revalidateLookups } from '@/app/_lib/selectOptionsCache';
+import { revalidateSidebarCounts } from '@/server/lookups'; // ήδη το έχεις
+
+export async function createCountry(data: { name: string, iso2?: string }) {
+  const country = await prisma.country.create({ data });
+
+  // revalidate στοχευμένα
+  revalidateLookups('countries');
+
+  // αν εμφανίζεται στους sidebar counters
+  revalidateSidebarCounts();
+
+  return country;
+}
+
+export async function updateRank(
+  id: string,
+  data: { name?: string, code?: string }
+) {
+  const rank = await prisma.rank.update({ where: { id }, data });
+  revalidateLookups('ranks'); // μόνο ό,τι άλλαξε
+  return rank;
+}
+
+export async function deleteBranch(id: string) {
+  await prisma.serviceBranch.delete({ where: { id } });
+  revalidateLookups('branches'); // καθάρισε λίστες κλάδων
+}
 ```

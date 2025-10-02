@@ -9,6 +9,7 @@ export const AppDataCtx = createStoreContext<AppData>('AppDataContext');
 export function useAppData() {
   return AppDataCtx.useStore();
 }
+
 export function useCounts() {
   const { state, setState } = useAppData();
   return {
@@ -17,6 +18,7 @@ export function useCounts() {
       setState((s) => ({ ...s, counts: { ...s.counts, ...next } })),
   };
 }
+
 export function AppDataProvider({
   initial,
   children,

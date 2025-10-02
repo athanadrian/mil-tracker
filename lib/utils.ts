@@ -142,8 +142,9 @@ function csvToEnumArr<T>(
 }
 
 export function toPersonFilters(pf: ParsedFilters): PersonFilters {
-  const branchIds = fromCsv(pf.branchId);
-  const countryIds = fromCsv(pf.countryId);
+  const branchIds = fromCsv(pf.branchId || (pf as any).branch);
+  const countryIds = fromCsv(pf.countryId || (pf as any).country);
+  const rankIds = fromCsv(pf.rankId || (pf as any).rank);
 
   const statuses = csvToEnumArr<ServiceStatus>(
     pf.serviceStatus || pf.status,
@@ -155,6 +156,7 @@ export function toPersonFilters(pf: ParsedFilters): PersonFilters {
     q: pf.q || undefined,
     branchId: arrOrU(branchIds),
     countryId: arrOrU(countryIds),
+    rankId: arrOrU(rankIds),
     status: arrOrU(statuses),
     type: arrOrU(types),
   };
@@ -249,3 +251,10 @@ export const yearFromISO = (iso?: string | null) => {
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? '—' : String(d.getFullYear());
 };
+
+// ΠΑΝΤΑ επιστρέφει string[]
+export const toIdArray = (v?: string | string[] | null) =>
+  Array.isArray(v) ? v.filter(Boolean) : v ? [v] : [];
+
+export const cap = (n: number | undefined, max = 1000) =>
+  Math.min(Math.max(n ?? 50, 0), max);

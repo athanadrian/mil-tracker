@@ -10,6 +10,7 @@ export type PersonFilters = {
   q?: string; // full-text (firstName/lastName/nickname)
   branchId?: string | string[];
   countryId?: string | string[];
+  rankId?: string | string[];
   status?: ServiceStatus | ServiceStatus[];
   type?: PersonType | PersonType[];
 };

@@ -7,6 +7,7 @@ import { prisma } from '@/lib/db';
 import { AdminCounts } from '@/types/nav';
 import { lookUpDataLinks } from '@/constants/links';
 import { Prisma, UnitType } from '@prisma/client';
+import { cap, toIdArray } from '@/lib/utils';
 
 // Τα keys να ταιριάζουν με τα path segments σου
 export type EntityKey =
@@ -230,12 +231,6 @@ export async function revalidateSidebarCounts() {
 /* =======================
    Select Lookups (with cascades)
 ======================= */
-
-// Small helpers
-const toIdArray = (v?: string | string[] | null) =>
-  Array.isArray(v) ? v.filter(Boolean) : v ? [v] : [];
-const cap = (n: number | undefined, max = 1000) =>
-  Math.min(Math.max(n ?? 50, 0), max);
 
 export type SelectInclude = {
   countries?: boolean;
@@ -550,3 +545,44 @@ export const getSelectOptions = async ({
   await Promise.all(tasks);
   return res; // JSON-safe
 };
+
+const BASE_TAG = 'lookups';
+
+// σταθεροποίηση κλειδιού για τα args
+function stableKey(args: unknown) {
+  return JSON.stringify(args, Object.keys(args as any).sort());
+}
+
+// Παράγει tags ανάλογα με τα includes (π.χ. lookups:countries, lookups:ranks)
+function tagsFromInclude(include?: SelectInclude) {
+  const tags = [BASE_TAG];
+  if (!include) return tags;
+  for (const [k, v] of Object.entries(include)) {
+    if (v) tags.push(`${BASE_TAG}:${k}`);
+  }
+  return tags;
+}
+
+/**
+ * Cached wrapper της getSelectOptions.
+ * Δεν πειράζουμε την getSelectOptions — απλώς την τυλίγουμε με unstable_cache.
+ */
+export async function getSelectOptionsCached(args: GetSelectOptionsArgs = {}) {
+  const key = ['select-options', stableKey(args)];
+  const tags = tagsFromInclude(args.include);
+
+  const runner = cache(() => getSelectOptions(args), key, { tags });
+
+  return runner();
+}
+
+/** Revalidate γενικά όλα τα lookups */
+export async function revalidateAllLookups() {
+  revalidateTag(BASE_TAG);
+}
+
+/** Revalidate μόνο συγκεκριμένα lookups (π.χ. 'countries', 'ranks') */
+export async function revalidateLookups(...keys: (keyof SelectInclude)[]) {
+  if (!keys.length) return revalidateAllLookups();
+  for (const k of keys) revalidateTag(`${BASE_TAG}:${k}`);
+}

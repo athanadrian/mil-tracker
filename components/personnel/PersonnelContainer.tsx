@@ -32,10 +32,12 @@ import {
 } from '@/components/personnel';
 import { pushWithParams } from '@/lib/utils';
 import PersonnelDataTable from './PersonnelDataTable';
+import { SelectInclude } from '@/actions/common.actions';
 
 type PersonnelContainerProps = {
   initial: PersonnelListPayload;
   initialFilters: PersonFilters;
+  selectOptions: SelectInclude;
 };
 
 // Sort utils
@@ -54,6 +56,7 @@ export const PERSONNEL_TABLE_CELLS = 10;
 const PersonnelContainer = ({
   initialFilters,
   initial,
+  selectOptions,
 }: PersonnelContainerProps) => {
   const router = useRouter();
   const pathname = usePathname();
@@ -72,7 +75,7 @@ const PersonnelContainer = ({
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [filters, setFilters] = useState<Record<string, string>>(() => ({
     q: (initialFilters.q as string) || '',
-    type: Array.isArray(initialFilters.type)
+    personType: Array.isArray(initialFilters.type)
       ? initialFilters.type.join(',')
       : (initialFilters.type as any) || '',
     serviceStatus: Array.isArray(initialFilters.status)
@@ -81,12 +84,17 @@ const PersonnelContainer = ({
     branchId: Array.isArray(initialFilters.branchId)
       ? initialFilters.branchId.join(',')
       : (initialFilters.branchId as any) || '',
+    rankId: Array.isArray(initialFilters.rankId)
+      ? initialFilters.rankId.join(',')
+      : (initialFilters.rankId as any) || '',
     countryId: Array.isArray(initialFilters.countryId)
       ? initialFilters.countryId.join(',')
       : (initialFilters.countryId as any) || '',
   }));
   const [pageIndex, setPageIndex] = useState(0);
   const [pageSize, setPageSize] = useState(1);
+
+  const { ranks, branches, countries } = selectOptions;
 
   const filteredRows = useMemo(() => {
     return rows.filter((p) => {
@@ -96,11 +104,23 @@ const PersonnelContainer = ({
       if (filters.serviceStatus && p.status !== filters.serviceStatus)
         return false;
 
+      if (filters.rankId && p.rank?.id !== filters.rankId) return false;
+      if (filters.countryId && p.country?.id !== filters.countryId)
+        return false;
+      if (filters.branchId && p.branch?.id !== filters.branchId) return false;
+
       return true;
     });
-  }, [rows, filters.q, filters.personType, filters.serviceStatus]);
-
-  console.log('rows.length', rows.length);
+    // αν θες, βάλε dependency απλά [rows, filters]
+  }, [
+    rows,
+    filters.q,
+    filters.personType,
+    filters.serviceStatus,
+    filters.rankId,
+    filters.countryId,
+    filters.branchId,
+  ]);
 
   // reset when initial changes
   useEffect(() => {
@@ -161,8 +181,29 @@ const PersonnelContainer = ({
         options: PERSON_TYPE_OPTIONS,
         getLabel: (o: any) => o?.label ?? '',
       },
+      {
+        key: 'rankId',
+        type: 'appselect',
+        placeholder: 'Βαθμός',
+        options: ranks,
+        getLabel: (o: any) => (o?.label || o?.name) ?? '',
+      },
+      {
+        key: 'branchId',
+        type: 'appselect',
+        placeholder: 'Όπλο',
+        options: branches,
+        getLabel: (o: any) => (o?.label || o?.name) ?? '',
+      },
+      {
+        key: 'countryId',
+        type: 'appselect',
+        placeholder: 'Χώρα',
+        options: countries,
+        getLabel: (o: any) => (o?.label || o?.name) ?? '',
+      },
     ],
-    []
+    [ranks, branches, countries]
   );
   const paginationOptions = useMemo(
     () => paginationTypes.map((p) => ({ value: p.id, label: p.name })),
@@ -320,7 +361,14 @@ const PersonnelContainer = ({
           setPageIndex(0); // reset page όταν αλλάζει φίλτρο
         }}
         onClearAll={() => {
-          setFilters({ q: '', personType: '', serviceStatus: '' });
+          setFilters({
+            q: '',
+            personType: '',
+            serviceStatus: '',
+            rankId: '',
+            countryId: '',
+            branchId: '',
+          });
           setPageIndex(0);
         }}
       />
@@ -351,12 +399,11 @@ const PersonnelContainer = ({
         </>
       ) : (
         <PersonnelDataTable
-          rows={rows}
+          rows={visibleRows}
           pageIndex={pageIndex}
           pageSize={pageSize}
           setPageIndex={setPageIndex}
           setPageSize={setPageSize}
-          pageSizeOptions={[1, 10, 25, 50, 100]}
         />
       )}
       {/* Pagination / Load more controls */}
