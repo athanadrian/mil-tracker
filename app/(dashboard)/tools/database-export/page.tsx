@@ -1,13 +1,16 @@
 import { AppPageBreadcrumbs, AppPageTitle } from '@/components/app-ui';
-import { ImportLookupsCard } from '@/components/database';
+import { ExportContainer, ImportLookupsCard } from '@/components/database';
 import React from 'react';
 
-const DatabasePage = () => {
+const ExportDatabasePage = () => {
   return (
     <div className='p-4 space-y-6'>
       <AppPageBreadcrumbs
         base={{ href: '/', label: 'Πίνακας Ελέγχου' }}
-        segmentLabels={{ tools: 'Εργαλεία', database: 'Δεδομένα' }}
+        segmentLabels={{
+          tools: 'Εργαλεία',
+          'database-export': 'Εξαγωγή Δεδομένων',
+        }}
       />
       <AppPageTitle
         title='Βάση Δεδομένων'
@@ -17,10 +20,10 @@ const DatabasePage = () => {
         // actionIconKey='add'
       />
       <div className='mt-4'>
-        <ImportLookupsCard />
+        <ExportContainer />{' '}
       </div>
     </div>
   );
 };
 
-export default DatabasePage;
+export default ExportDatabasePage;

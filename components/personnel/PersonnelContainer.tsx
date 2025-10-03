@@ -92,7 +92,7 @@ const PersonnelContainer = ({
       : (initialFilters.countryId as any) || '',
   }));
   const [pageIndex, setPageIndex] = useState(0);
-  const [pageSize, setPageSize] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const { ranks, branches, countries } = selectOptions;
 

@@ -27,7 +27,7 @@ export type InstallationDTO = {
     type: UnitType;
   } | null;
   organization?: { id: string; name: string } | null;
-  country?: { id: string; name: string } | null;
+  country?: { id: string; name: string; flag?: string | null } | null;
   position?: { id: string; name: string; code?: string | null } | null;
   rankAtTime?: { id: string; name: string; code?: string | null } | null;
 };
@@ -50,7 +50,7 @@ export type PersonDTO = {
   /** JSON από τη βάση (avatar, gallery κ.λπ.) */
   personImagePaths: Prisma.JsonValue | null;
 
-  country?: { id: string; name: string } | null;
+  country?: { id: string; name: string; flag?: string | null } | null;
   branch?: { id: string; name: string; code?: string | null } | null;
   rank?: { id: string; name: string; code?: string | null } | null;
 
@@ -74,7 +74,12 @@ export type InstallationDetailDTO = {
     | { id: string; name: string; code?: string | null; type: UnitType }
     | undefined;
   organization?: { id: string; name: string; code?: string | null } | undefined;
-  country?: { id: string; name: string; iso2?: string | null } | undefined;
+  country: {
+    id: string;
+    name: string;
+    iso2?: string | null; // <-- επιτρέπει null
+    flag?: string | null;
+  } | null;
   position?: { id: string; name: string; code?: string | null } | undefined;
   rankAtTime?:
     | { id: string; name: string; code?: string | null; tier: string }
@@ -109,7 +114,12 @@ export type PersonDetailDTO = {
   /** JSON από τη βάση (avatar, gallery κ.λπ.) */
   personImagePaths: Prisma.JsonValue | null;
 
-  country: { id: string; name: string; iso2?: string | null } | null;
+  country: {
+    id: string;
+    name: string;
+    iso2?: string | null; // <-- επιτρέπει null
+    flag?: string | null;
+  } | null;
   branch: { id: string; name: string; code?: string | null } | null;
   rank: { id: string; name: string; code?: string | null; tier: string } | null;
   specialty: { id: string; name: string; code?: string | null } | null;
@@ -323,7 +333,7 @@ export const getPersonnelData = async ({
     ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
     orderBy,
     include: {
-      country: { select: { id: true, name: true } },
+      country: { select: { id: true, name: true, flag: true } },
       branch: { select: { id: true, name: true, code: true } },
       rank: { select: { id: true, name: true, code: true } },
       promotions: {
@@ -333,7 +343,7 @@ export const getPersonnelData = async ({
         include: {
           unit: { select: { id: true, name: true, code: true, type: true } },
           organization: { select: { id: true, name: true } },
-          country: { select: { id: true, name: true } },
+          country: { select: { id: true, name: true, flag: true } },
           position: { select: { id: true, name: true, code: true } },
           rankAtTime: { select: { id: true, name: true, code: true } },
         },
@@ -368,7 +378,9 @@ export const getPersonnelData = async ({
       organization: pp.organization
         ? { id: pp.organization.id, name: pp.organization.name }
         : null,
-      country: pp.country ? { id: pp.country.id, name: pp.country.name } : null,
+      country: pp.country
+        ? { id: pp.country.id, name: pp.country.name, flag: pp.country.flag }
+        : null,
       position: pp.position
         ? { id: pp.position.id, name: pp.position.name, code: pp.position.code }
         : null,
@@ -397,7 +409,9 @@ export const getPersonnelData = async ({
       status: p.status,
       retiredYear,
       personImagePaths: (p.personImagePaths ?? null) as Prisma.JsonValue | null,
-      country: p.country ? { id: p.country.id, name: p.country.name } : null,
+      country: p.country
+        ? { id: p.country.id, name: p.country.name, flag: p.country.flag }
+        : null,
       branch: p.branch
         ? { id: p.branch.id, name: p.branch.name, code: p.branch.code }
         : null,
@@ -467,7 +481,7 @@ export const getPersonDetailById = async (
   const p = await prisma.person.findUnique({
     where: { id },
     include: {
-      country: { select: { id: true, name: true, iso2: true } },
+      country: { select: { id: true, name: true, iso2: true, flag: true } },
       branch: { select: { id: true, name: true, code: true } },
       rank: { select: { id: true, name: true, code: true, tier: true } },
       specialty: { select: { id: true, name: true, code: true } },
@@ -492,7 +506,7 @@ export const getPersonDetailById = async (
         include: {
           unit: { select: { id: true, name: true, code: true, type: true } },
           organization: { select: { id: true, name: true, code: true } },
-          country: { select: { id: true, name: true, iso2: true } },
+          country: { select: { id: true, name: true, iso2: true, flag: true } },
           position: { select: { id: true, name: true, code: true } },
           rankAtTime: {
             select: { id: true, name: true, code: true, tier: true },
@@ -536,8 +550,12 @@ export const getPersonDetailById = async (
         }
       : undefined,
     country: pp.country
-      ? { id: pp.country.id, name: pp.country.name, iso2: pp.country.iso2 }
-      : undefined,
+      ? {
+          id: pp.country.id,
+          name: pp.country.name,
+          flag: pp.country.flag ?? null,
+        }
+      : null,
     position: pp.position
       ? { id: pp.position.id, name: pp.position.name, code: pp.position.code }
       : undefined,
@@ -579,7 +597,12 @@ export const getPersonDetailById = async (
     phone: (p as any).phone ?? null,
     personImagePaths: (p.personImagePaths ?? null) as Prisma.JsonValue | null,
     country: p.country
-      ? { id: p.country.id, name: p.country.name, iso2: p.country.iso2 }
+      ? {
+          id: p.country.id,
+          name: p.country.name,
+          iso2: p.country.iso2,
+          flag: p.country.flag,
+        }
       : null,
     branch: p.branch
       ? { id: p.branch.id, name: p.branch.name, code: p.branch.code }

@@ -119,6 +119,13 @@ const AdminSidebar = () => {
           </SidebarGroupContent>
         </SidebarGroup>
         <SidebarGroup>
+          <SidebarGroupLabel className='flex items-center justify-between'>
+            <span>Βάση Δεδομένων</span>
+            <AppIcon
+              icon={appIcons.database}
+              className='ml-auto transition-transform group-data-[state=open]/collapsible:rotate-180'
+            />
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {groups.database.map((link) => (

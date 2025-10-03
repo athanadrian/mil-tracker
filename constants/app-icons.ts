@@ -61,6 +61,8 @@ import {
   TbHexagonLetterH,
   TbHexagonLetterE,
   TbHexagonLetterD,
+  TbDatabaseExport,
+  TbDatabaseImport,
 } from 'react-icons/tb';
 import { VscTypeHierarchySub, VscTable } from 'react-icons/vsc';
 import { LogoIcon } from './custom-icons';
@@ -90,6 +92,8 @@ export const appIcons = {
   directorates: LuCommand,
 
   database: FiDatabase,
+  database_import: TbDatabaseImport,
+  database_export: TbDatabaseExport,
   headQuarters: BiSolidCity,
   formations: CiBoxes,
   units: LiaBoxesSolid,

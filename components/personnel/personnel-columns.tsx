@@ -196,7 +196,10 @@ export function makePersonnelColumns(opts?: {
       accessorFn: (p) => p.country?.name ?? '',
       sortingFn: 'alphanumeric',
       size: 160,
-      cell: ({ row }) => row.original.country?.name ?? '—',
+      cell: ({ row }) =>
+        row.original.country?.flag
+          ? row.original.country?.flag
+          : row.original.country?.name ?? '—',
     },
 
     // Κατάσταση
