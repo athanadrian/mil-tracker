@@ -145,6 +145,7 @@ export const getEntityName = reactCache(
 
 // “Ψεύτικα” counts για πίνακες που δεν έχουν υλοποιηθεί ακόμη
 const FAKE_LOOKUPS = {
+  database: 0,
   directorates: 4,
   departments: 11,
   departmentSectors: 20,
@@ -194,6 +195,7 @@ export const getSidebarCounts = cache(
       directorates: FAKE_LOOKUPS.directorates,
       departments: FAKE_LOOKUPS.departments,
       departmentSectors: FAKE_LOOKUPS.departmentSectors,
+      database: FAKE_LOOKUPS.database,
       headQuarters,
       formations,
       units,

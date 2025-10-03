@@ -94,3 +94,61 @@ export async function deleteBranch(id: string) {
   revalidateLookups('branches'); // καθάρισε λίστες κλάδων
 }
 ```
+
+```τερμιναλ
+
+Sheet: Regions
+name*	code	description
+Europe	EU
+Middle East	ME
+
+name unique (στο schema είναι unique), code optional.
+
+Sheet: Countries
+name*	iso2	region (by name)	flag	countryImage
+Greece	GR	Europe
+Cyprus	CY	Europe
+
+name unique, iso2 unique (αν υπάρχει).
+
+region → αντιστοίχιση σε Region.name.
+
+Sheet: Branches
+name*	code	country (by iso2 or name)
+Στρατός Ξηράς	ΣΞ	GR
+Πολεμική Αεροπορία	ΠΑ	GR
+
+country → πρώτα ψάχνουμε iso2, αλλιώς name.
+
+Sheet: Ranks
+
+| name* | code | tier* (ENLISTED|OFFICER|WARRANT|OTHER) | level | branch (by code or name) |
+|---|---|---|---|---|
+| Λοχίας | HA-SGT | ENLISTED | 3 | ΣΞ |
+| Ανθυπολοχαγός | HA-2LT | OFFICER | 1 | ΣΞ |
+
+tier είναι enum (RankTier).
+
+branch → με code προτιμητέα, αλλιώς με name.
+
+Sheet: Organizations
+
+| name* | code | type* (GOVERNMENT|MILITARY|NGO|OTHER) | country (by iso2 or name) |
+|---|---|---|---|
+| ΓΕΣ | HAGS | MILITARY | GR |
+
+type είναι enum (OrganizationType).
+
+Sheet: Units
+
+| name* | code | type* (HQ|FORMATION|UNIT|SUBUNIT|OTHER) | country (by iso2 or name)* | branch (by code or name) | parentCode | latitude | longitude |
+|---|---|---|---|---|---|---|---|
+| 1η Στρατιά | 1STR | FORMATION | GR | ΣΞ | | 39.62 | 22.41 |
+| 1η ΤΑΞ ΠΖ | 1TAXPZ | UNIT | GR | ΣΞ | 1STR | | |
+
+parentCode λύνει το δέντρο (πρέπει να υπάρχει row για τον parent στο ίδιο αρχείο).
+
+country required στο δικό σου schema.
+
+branch optional στο schema, αλλά αν υπάρχει στο Excel, θα συνδεθεί.
+```

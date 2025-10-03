@@ -5,6 +5,7 @@ import { Stat } from '@/components/common';
 import { adminLinks, lookUpDataLinks } from '@/constants/links';
 import { useCounts } from '@/providers/AdminDataProvider';
 import type { AdminCounts, AdminLookupLink, AdminNavLink } from '@/types/nav';
+import { Database } from 'lucide-react';
 
 // Τύποι που δέχεται το component
 type LinksMode = 'admin' | 'tools';
@@ -19,12 +20,13 @@ function hasType(
 
 // Ετικέτες ομάδων
 const TYPE_TITLES: Record<string, string> = {
+  database: 'Βάση Δεδομένων',
   personnel: 'Προσωπικό',
   documents: 'Έγγραφα',
   application: 'Εφαρμογή',
 };
 
-const TYPE_ORDER = ['personnel', 'documents', 'application'];
+const TYPE_ORDER = ['Database', 'personnel', 'documents', 'application'];
 
 interface StatsContainerProps {
   links: LinksMode; // 'admin' => adminLinks, 'tools' => lookUpDataLinks

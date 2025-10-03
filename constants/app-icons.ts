@@ -15,6 +15,7 @@ import {
   FiChevronRight,
   FiChevronUp,
   FiSettings,
+  FiDatabase,
 } from 'react-icons/fi';
 import { RiUser2Line, RiUserSettingsLine, RiAdminLine } from 'react-icons/ri';
 import { LuCommand, LuChevronDown, LuArrowUpDown } from 'react-icons/lu';
@@ -88,6 +89,7 @@ export const appIcons = {
   branches: PiGitBranchBold,
   directorates: LuCommand,
 
+  database: FiDatabase,
   headQuarters: BiSolidCity,
   formations: CiBoxes,
   units: LiaBoxesSolid,

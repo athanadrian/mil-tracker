@@ -37,7 +37,7 @@ const AdminSidebar = () => {
         acc[link.type].push(link);
         return acc;
       },
-      { personnel: [], documents: [], application: [] }
+      { database: [], personnel: [], documents: [], application: [] }
     );
   }, []);
 
@@ -101,10 +101,27 @@ const AdminSidebar = () => {
       <SidebarContent className='scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400 w-[220px]'>
         {/* Εφαρμογή */}
         <SidebarGroup>
-          {/* <SidebarGroupLabel>Εφαρμογή</SidebarGroupLabel> */}
           <SidebarGroupContent>
             <SidebarMenu>
               {adminLinks.map((link) => (
+                <CollapsibleMenuItem
+                  key={link.label}
+                  href={link.href}
+                  icon={link.icon}
+                  label={link.label}
+                  badge={
+                    hasCountKey(link) ? counts[link.countKey] ?? 0 : undefined
+                  }
+                  accessibility={link.accessibility}
+                />
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {groups.database.map((link) => (
                 <CollapsibleMenuItem
                   key={link.label}
                   href={link.href}

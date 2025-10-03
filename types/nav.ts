@@ -61,7 +61,11 @@
 import type { UrlObject } from 'url';
 import type { IconLike } from '@/components/app-ui';
 
-export type LinkCategory = 'personnel' | 'documents' | 'application';
+export type LinkCategory =
+  | 'database'
+  | 'personnel'
+  | 'documents'
+  | 'application';
 
 // Βάλε όλα τα keys που θες να μπορούν να εμφανίσουν badge
 export type AdminCounts = {
@@ -76,6 +80,8 @@ export type AdminCounts = {
   branches: number;
   positions: number;
 
+  //database
+  database: number;
   // tools/documents
   docTypes: number;
   docTypeCategories: number;
@@ -104,6 +110,7 @@ export const initialCounts: AdminCounts = {
   branches: 4,
   positions: 40,
 
+  database: 0,
   docTypes: 6,
   docTypeCategories: 5,
   documents: 76,

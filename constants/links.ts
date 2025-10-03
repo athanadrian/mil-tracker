@@ -62,6 +62,14 @@ export const adminLinks = [
 
 export const lookUpDataLinks = [
   {
+    label: 'Δεδομένα',
+    href: { pathname: '/tools/database' },
+    icon: appIcons.database,
+    iconKey: 'database',
+    value: 'database',
+    type: 'database',
+  },
+  {
     label: 'Αρχηγεία',
     href: { pathname: '/tools/units', query: { type: 'hq' } },
     icon: appIcons.headQuarters,
