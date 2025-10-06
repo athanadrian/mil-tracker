@@ -159,7 +159,7 @@ model Country {
   // back-relations
   organizations     Organization[] // οργανισμοί με countryId (π.χ. έδρα)
   branches          ServiceBranch[]
-  people            Person[]
+  personnel            Person[]
   units             Unit[]
   equipmentOrigin   Equipment[]           @relation("EquipmentOriginCountry")
   meetings          Meeting[]
@@ -187,7 +187,7 @@ model Organization {
   children Organization[] @relation("OrgToChildren")
 
   // back-relations
-  people              Person[]
+  personnel              Person[]
   postings            PersonPosting[]
   meetings            Meeting[]
   companyMembers      CompanyOrganization[]
@@ -201,7 +201,6 @@ model Company {
   id           String   @id @default(cuid())
   name         String
   website      String?
-  notes        String?
   companyImage String?
   description  String?
   // HQ χώρα
@@ -210,7 +209,7 @@ model Company {
 
   offices      CompanyOffice[]
   memberships  CompanyOrganization[]
-  people       Person[] // υπάλληλοι
+  personnel       Person[] // υπάλληλοι
   manufactured Equipment[]           @relation("ManufacturerCompany")
 
   @@map("companies")
@@ -282,7 +281,7 @@ model ServiceBranch {
   country     Country @relation(fields: [countryId], references: [id])
   countryId   String
 
-  people      Person[]
+  personnel      Person[]
   ranks       Rank[]
   specialties Specialty[]
   units       Unit[]
@@ -302,7 +301,7 @@ model Rank {
   branch      ServiceBranch? @relation(fields: [branchId], references: [id])
   branchId    String?
 
-  people     Person[]
+  personnel     Person[]
   postings   PersonPosting[]
   promotions Promotion[]
 
@@ -319,7 +318,7 @@ model Specialty {
   branch   ServiceBranch? @relation(fields: [branchId], references: [id])
   branchId String?
 
-  people Person[]
+  personnel Person[]
 
   @@index([branchId])
   @@map("specialties")
@@ -364,6 +363,7 @@ model Person {
 
   email            String?
   phone            String?
+  classYear        String?
   description      String?
   personImagePaths Json?
   status           ServiceStatus @default(ACTIVE)

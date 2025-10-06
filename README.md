@@ -96,8 +96,24 @@ export async function deleteBranch(id: string) {
 ```
 
 ```terminal
-
 θέλω να μου φτιάξεις μια add/edit PersonnelPage που θα ξεχωρίζουν /personnel/create (for create) /personell/create?edit="entityId" (for edit) θα υπάρχει zod validation στην ίδια σελίδα θα έχει και 2 πίνακες έναν με τισ τοποθετήσεις και έναν με τις προαγωγέσ (κενοί για create με οτι στοιχεία έςχουν για edit.
 στη φόρμα στα dropdowns (country, unit, .....) θα έχουν και την επιλογή add {endity} για την οποία θα ανοίγει dialog
 θα μου φτιάξεις και τις server functions για add/edit person μαζί με add/edit/delete istallations και promotions
+```
+
+```terminal
+θέλω ένα excel με το καινουργιο στήσιμο της βάσης στο οποίο σε κάθε εισαγωγή να υπαρχουν τα υπάρχοντα πεδία σε dropdown lists για να τα επιλέγουμε αυτόματα
+είτε είναι
+1) χωρες να υπάρχει αυτόματα το region σε dropdown και οτι άλλο πεδίο
+2) είτε είναι βαθμοί να υπάρχει αυτόματα το branch σε dropdown  και οτι άλλο πεδίο
+3) είναι είναι προσωπικό να υπάρχει αυτόματα το country, rank σε dropdown και οτι άλλο πεδίο
+4) είναι PersonPostings να υπάρχει αυτόματα το όνομα του ατόμου σε dropdown και οτι άλλο πεδίο
+5) είναι Promotions να υπάρχει αυτόματα το όνομα του ατόμου σε dropdown και οτι άλλο πεδίο
+το ίδιο και για, εξοπλισμούς, συναντήεισ,
+.και κάθε φορά που κάνω εισαγωγή εγγραφής αυτή να είναι διαθέσιμη στα dropdown
+τα υποχρεωτικά πεδία φτιάξτα μου με κόκινο χρώμα
+Εξαρτώμενα dropdowns (π.χ. Branch → Ranks μόνο του συγκεκριμένου Branch, Country → Branches της χώρας);
+Εισαγωγή 15 Τούρκους 10 από άλλες χώρες βέλα να έχουν PersonPostings και Promotions όπου χρειάζεται ελληνικά
+εξαρτώμενο και το Unit με βάση Country/Branch; να περάσω όλα τα πραγματικά ελληνικά/τουρκικά rank trees;
+ ή να προσθέσω Companies/Offices με dropdown για manufacturer στα Equipment; Πες μου and I’ll bake it in στο ίδιο αρχείο
 ```

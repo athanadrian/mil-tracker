@@ -14,7 +14,7 @@ const ExportDatabasePage = () => {
       />
       <AppPageTitle
         title='Βάση Δεδομένων'
-        subtitle='Εισαγωγή δεδομένων από Φύλλο Εργασίας(.xlxs)'
+        subtitle='Εξαγωγή δεδομένων'
         // actionLabel='Νέα Χώρα'
         // actionHref='/tools/database/new'
         // actionIconKey='add'
