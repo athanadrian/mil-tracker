@@ -84,12 +84,83 @@ const enumFrom = <T extends object>(E: T, v?: any) =>
   ((v = toUpper(v)) && (E as any)[v]) || undefined;
 const enumFromStrict = enumFrom;
 
-const asDateOrNull = (v?: any) => {
-  const s = norm(v);
+const EXCEL_EPOCH_UTC = Date.UTC(1899, 11, 30); // 1899-12-30
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function excelSerialToDate(n: number): Date | null {
+  if (!Number.isFinite(n)) return null;
+  // Excel bug για το 1900-02-29 -> εδώ δεν χρειάζεται ειδικός χειρισμός
+  // Αποδεκτό range serials ~ [60..60000] (1900..2064+) — προσαρμόζεις αν θες
+  if (n < 60 || n > 100000) return null;
+  const ms = EXCEL_EPOCH_UTC + Math.round(n) * DAY_MS;
+  return new Date(ms);
+}
+
+function asDateOrNull(v?: any): Date | null {
+  if (v == null || v === '') return null;
+
+  // Ήδη Date
+  if (v instanceof Date && !Number.isNaN(v.getTime())) return v;
+
+  // Αριθμός -> Excel serial
+  if (typeof v === 'number') {
+    const d = excelSerialToDate(v);
+    return d && !Number.isNaN(d.getTime()) ? d : null;
+  }
+
+  // String
+  const s = String(v).trim();
   if (!s) return null;
-  const d = new Date(s);
-  return Number.isNaN(d.getTime()) ? null : d;
-};
+
+  // String που είναι καθαρά αριθμός -> πιθανό Excel serial
+  if (/^\d{1,6}$/.test(s)) {
+    const num = Number(s);
+    const d = excelSerialToDate(num);
+    if (d && !Number.isNaN(d.getTime())) return d;
+  }
+
+  // ISO / γενικά parseable από Date
+  {
+    const d = new Date(s);
+    if (!Number.isNaN(d.getTime())) return d;
+  }
+
+  // dd/MM/yyyy ή dd-MM-yyyy ή dd.MM.yyyy
+  {
+    const m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
+    if (m) {
+      let [, dd, mm, yy] = m;
+      const day = Number(dd),
+        mon = Number(mm) - 1;
+      let year = Number(yy);
+      if (yy.length === 2) year += year >= 70 ? 1900 : 2000; // πολιτική για yy
+      if (year >= 1800 && year <= 2200) {
+        const d = new Date(Date.UTC(year, mon, day));
+        if (!Number.isNaN(d.getTime())) return d;
+      }
+    }
+  }
+
+  // MM/dd/yyyy fallback (αν το πρώτο token <= 12)
+  {
+    const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+    if (m) {
+      let [, mm, dd, yy] = m;
+      const mon = Number(mm),
+        day = Number(dd);
+      if (mon >= 1 && mon <= 12) {
+        let year = Number(yy);
+        if (yy.length === 2) year += year >= 70 ? 1900 : 2000;
+        if (year >= 1800 && year <= 2200) {
+          const d = new Date(Date.UTC(year, mon - 1, day));
+          if (!Number.isNaN(d.getTime())) return d;
+        }
+      }
+    }
+  }
+
+  return null;
+}
 
 function readBool(fd: FormData, key: string, fallback = false) {
   const v = fd.get(key);
@@ -116,6 +187,76 @@ function jsonFromCell(
     return s as unknown as Prisma.InputJsonValue;
   }
 }
+
+// Δέχεται πολλά πιθανά header names για fullname
+function pickFullname(r: any) {
+  return (
+    norm(r['person']) ||
+    norm(r['fullname']) ||
+    norm(r['full_name']) ||
+    norm(r['full name']) ||
+    norm(r['name']) || // συχνό στο excel
+    ''
+  );
+}
+
+// Θεώρησε "άδεια" μια σειρά αν ΟΛΕΣ οι στήλες της είναι κενές string-wise
+function isEmptyRow(r: any) {
+  const vals = Object.values(r ?? {});
+  if (!vals.length) return true;
+  return vals.every((v) => norm(v) === '');
+}
+
+// Από ένα row, φτιάξε first/last από fullname ή από πεδία first/last
+function extractName(r: any) {
+  let firstName = norm(r['firstname']);
+  let lastName = norm(r['lastname']);
+  const full = pickFullname(r);
+
+  if ((!firstName || !lastName) && full) {
+    // υποστήριξη "Last, First"
+    const partsComma = full
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (partsComma.length === 2) {
+      lastName = lastName || partsComma[0];
+      firstName = firstName || partsComma[1];
+    } else {
+      // default: "First Last [Middle...]"
+      const parts = full.replace(/\s+/g, ' ').trim().split(' ');
+      if (parts.length >= 2) {
+        firstName = firstName || parts.shift()!;
+        lastName = lastName || parts.join(' ');
+      } else if (parts.length === 1) {
+        // μία λέξη -> ας τη βάλουμε στο lastName ώστε να φανεί το λάθος αν λείπει first
+        lastName = lastName || parts[0];
+      }
+    }
+  }
+
+  return { firstName, lastName, hadAnyName: !!(firstName || lastName || full) };
+}
+
+// function parseRankRef(ref?: string) {
+//   const raw = norm(ref);
+//   if (!raw)
+//     return {
+//       rankCode: null as string | null,
+//       branchCode: null as string | null,
+//       raw: null as string | null,
+//     };
+//   const parts = raw
+//     .split('-')
+//     .map((s) => s.trim())
+//     .filter(Boolean);
+//   if (parts.length >= 2) {
+//     const rankCode = parts.pop()!; // τελευταίο = rank code (π.χ. YZB / 1LT)
+//     const branchCode = parts.join('-') || null; // ό,τι μένει = branch code (π.χ. TR-KKK / EF)
+//     return { rankCode, branchCode, raw };
+//   }
+//   return { rankCode: raw, branchCode: null, raw };
+// }
 
 /* ------------- XLSX helpers: case-insensitive sheets, lower headers -------- */
 function getSheet(wb: XLSX.WorkBook, wanted: string) {
@@ -165,16 +306,22 @@ async function getBranchIdByRef(ref?: string, countryId?: string) {
   });
   return byName?.id;
 }
-async function getRankIdByRef(ref?: string, branchId?: string) {
-  const raw = norm(ref);
+async function getRankIdByRef(rankCode: string) {
+  const raw = norm(rankCode);
   if (!raw) return undefined;
-  const byCode = await prisma.rank.findUnique({
-    where: { code: raw },
-    select: { id: true },
-  });
-  if (byCode?.id) return byCode.id;
+
+  if (rankCode) {
+    const byCode = await prisma.rank.findFirst({
+      where: {
+        code: rankCode,
+      },
+      select: { id: true },
+    });
+    if (byCode?.id) return byCode.id;
+  }
+
   const byName = await prisma.rank.findFirst({
-    where: { name: raw, ...(branchId ? { branchId } : {}) },
+    where: { name: raw },
     select: { id: true },
   });
   return byName?.id;
@@ -254,6 +401,16 @@ async function getPersonIdByName(
   return person?.id;
 }
 
+async function getSpecialtyIdByName(name?: string) {
+  const v = norm(name);
+  if (!v) return undefined;
+  const s = await prisma.specialty.findFirst({
+    where: { name: v },
+    select: { id: true },
+  });
+  return s?.id;
+}
+
 /* -------------------------------------------------------------------------- */
 /*                                   WIPE DB                                  */
 /* -------------------------------------------------------------------------- */
@@ -320,6 +477,7 @@ export async function wipeDatabase(): Promise<WipeResult> {
 /* -------------------------------------------------------------------------- */
 /*                               PREFLIGHT (clean headers)                    */
 /* -------------------------------------------------------------------------- */
+
 export async function preflightXlsx(
   formData: FormData
 ): Promise<PreflightReport> {
@@ -354,7 +512,7 @@ export async function preflightXlsx(
     PersonPostings: readBool(formData, 'loadPersonPostings', false),
   } as const;
 
-  // Hints for missing deps (short)
+  // dependency hints
   if (load.Ranks && !load.Branches)
     warnings.push('Ranks: χωρίς Branches, branch refs θα αναζητηθούν από DB.');
   if (load.Branches && !load.Countries)
@@ -413,18 +571,27 @@ export async function preflightXlsx(
     load.PersonOrganizations,
     SHEETS.PersonOrganizations
   );
-  const specs = rowsIf(load.Specialties, SHEETS.Specialties);
+  const specialties = rowsIf(load.Specialties, SHEETS.Specialties);
   const positions = rowsIf(load.Positions, SHEETS.Positions);
   const meetings = rowsIf(load.Meetings, SHEETS.Meetings);
   const mt = rowsIf(load.MeetingTopics, SHEETS.MeetingTopics);
   const mp = rowsIf(load.MeetingParticipants, SHEETS.MeetingParticipants);
 
-  // validate essential enums/refs (short & clean headers)
+  // --- existing validations (ενδεικτικά) ---
   ranks.forEach((r, i) => {
     const tier = toUpper(r['tier']);
     if (!tier || !(RankTier as any)[tier]) {
       errors.push(`[Ranks row ${i + 2}] invalid tier (${r['tier']})`);
     }
+  });
+
+  // στο preflightXlsx
+  specialties.forEach((r, i) => {
+    if (!norm(r['name']))
+      errors.push(`[Specialties row ${i + 2}] missing name`);
+  });
+  positions.forEach((r, i) => {
+    if (!norm(r['name'])) errors.push(`[Positions row ${i + 2}] missing name`);
   });
 
   units.forEach((r, i) => {
@@ -446,9 +613,20 @@ export async function preflightXlsx(
   });
 
   personnel.forEach((r, i) => {
-    if (!norm(r['firstname']) || !norm(r['lastname'])) {
-      errors.push(`[Personnel row ${i + 2}] missing firstName/lastName`);
+    if (isEmptyRow(r)) return; // αγνόησε τελείως empty lines
+
+    const full = pickFullname(r);
+    const hasParts = !!norm(r['firstname']) && !!norm(r['lastname']);
+    const hasFull = !!full;
+
+    if (!hasFull && !hasParts) {
+      errors.push(
+        `[Personnel row ${
+          i + 2
+        }] missing name (δώσε "person"/"fullname"/"name" ή "firstname"+"lastname")`
+      );
     }
+
     const t = toUpper(r['type'] || 'MILITARY');
     if (!(PersonType as any)[t]) {
       errors.push(`[Personnel row ${i + 2}] invalid type (${r['type']})`);
@@ -459,13 +637,38 @@ export async function preflightXlsx(
     }
   });
 
+  // ---------- UPDATED: Promotions supports fullname ----------
   promotions.forEach((r, i) => {
-    if (!norm(r['firstname']) || !norm(r['lastname'])) {
-      errors.push(`[Promotions row ${i + 2}] missing name`);
+    const hasFull = !!norm(r['person']) || !!norm(r['fullname']);
+    const hasParts = !!norm(r['firstname']) && !!norm(r['lastname']);
+    if (!hasFull && !hasParts) {
+      errors.push(
+        `[Promotions row ${
+          i + 2
+        }] missing name (δώσε "person"/"fullname" ή "firstname"+"lastname")`
+      );
     }
     const year = Number(r['promotionyear']);
     if (!Number.isInteger(year)) {
       errors.push(`[Promotions row ${i + 2}] invalid promotionYear`);
+    }
+  });
+
+  // ---------- UPDATED: MeetingParticipants supports fullname ----------
+  mp.forEach((r, i) => {
+    const dateOk = !!asDateOrNull(r['date']);
+    if (!dateOk) {
+      errors.push(`[MeetingParticipants row ${i + 2}] invalid date`);
+      return;
+    }
+    const hasFull = !!norm(r['person']) || !!norm(r['fullname']);
+    const hasParts = !!norm(r['firstname']) && !!norm(r['lastname']);
+    if (!hasFull && !hasParts) {
+      errors.push(
+        `[MeetingParticipants row ${
+          i + 2
+        }] missing person name (δώσε "person"/"fullname" ή "firstname"+"lastname")`
+      );
     }
   });
 
@@ -733,6 +936,71 @@ export async function importLookupsFromXlsx(
       } else {
         if (!dryRun) await prisma.rank.create({ data });
         result.created.Ranks++;
+      }
+    }
+  }
+
+  /* -------------------------------- Specialties ----------------------------- */
+  if (load.Specialties) {
+    for (let i = 0; i < specialtiesRows.length; i++) {
+      const r = specialtiesRows[i];
+      const name = norm(r['name']);
+      if (!name) {
+        result.errors.push(`[Specialties row ${i + 2}] missing name`);
+        continue;
+      }
+      const data = {
+        name,
+        code: norm(r['code']) || null,
+        specialtyImage: norm(r['specialtyimage']) || null,
+        description: norm(r['description']) || null,
+      };
+
+      const existing = await prisma.specialty.findFirst({
+        where: { OR: [{ name }, { code: data.code ?? '' }] },
+        select: { id: true },
+      });
+
+      if (existing) {
+        if (!dryRun)
+          await prisma.specialty.update({ where: { id: existing.id }, data });
+        result.updated.Specialties++;
+      } else {
+        if (!dryRun) await prisma.specialty.create({ data });
+        result.created.Specialties++;
+      }
+    }
+  }
+
+  /* --------------------------------- Positions ------------------------------ */
+  if (load.Positions) {
+    for (let i = 0; i < positionsRows.length; i++) {
+      const r = positionsRows[i];
+      const name = norm(r['name']);
+      if (!name) {
+        result.errors.push(`[Positions row ${i + 2}] missing name`);
+        continue;
+      }
+
+      const data = {
+        name,
+        code: norm(r['code']) || null,
+        positionImage: norm(r['positionimage']) || null,
+        description: norm(r['description']) || null,
+      };
+
+      const existing = await prisma.position.findFirst({
+        where: { OR: [{ name }, { code: data.code ?? '' }] },
+        select: { id: true },
+      });
+
+      if (existing) {
+        if (!dryRun)
+          await prisma.position.update({ where: { id: existing.id }, data });
+        result.updated.Positions++;
+      } else {
+        if (!dryRun) await prisma.position.create({ data });
+        result.created.Positions++;
       }
     }
   }
@@ -1167,18 +1435,25 @@ export async function importLookupsFromXlsx(
   if (load.Personnel) {
     for (let i = 0; i < personnelRows.length; i++) {
       const r = personnelRows[i];
-      const firstName = norm(r['firstname']);
-      const lastName = norm(r['lastname']);
+
+      // αγνόησε τελείως άδειες σειρές
+      if (isEmptyRow(r)) continue;
+
+      const { firstName, lastName, hadAnyName } = extractName(r);
+
       if (!firstName || !lastName) {
         result.errors.push(
-          `[Personnel row ${i + 2}] missing firstName/lastName`
+          `[Personnel row ${
+            i + 2
+          }] missing name (δώσε "person"/"fullname"/"name" ή "firstname"+"lastname")`
         );
         continue;
       }
+
       const type = enumFromStrict(PersonType, r['type']) ?? PersonType.MILITARY;
       const countryId = await getCountryIdByRef(r['country']);
       const branchId = await getBranchIdByRef(r['branch'], countryId);
-      const rankId = await getRankIdByRef(r['rank'], branchId);
+      const rankId = await getRankIdByRef(r['rank']);
 
       const status =
         enumFromStrict(ServiceStatus, r['status']) ?? ServiceStatus.ACTIVE;
@@ -1205,9 +1480,10 @@ export async function importLookupsFromXlsx(
         organizationId:
           (await getOrganizationIdByRef(r['organization'])) ?? null,
         companyId: (await getCompanyIdByName(r['company'])) ?? null,
-        specialtyId: (() => null)() as any, // optional; we can add lookup if you tie by name
+        specialtyId: (await getSpecialtyIdByName(r['specialty'])) ?? null,
       };
 
+      // Uniqueness: email > (first,last,country?,type)
       let existingId: string | undefined;
       if (data.email) {
         const byEmail = await prisma.person.findFirst({
@@ -1250,13 +1526,19 @@ export async function importLookupsFromXlsx(
         continue;
       }
       const countryId = await getCountryIdByRef(r['country']);
-      const personId = await getPersonIdByName(person, countryId, undefined);
+      const personId = await getPersonIdByName(
+        person,
+        undefined,
+        undefined,
+        countryId,
+        undefined
+      );
+
       if (!personId) {
         result.errors.push(`[Promotions row ${i + 2}] person not found`);
         continue;
       }
-      const branchId = await getBranchIdByRef(r['branch'], countryId);
-      const rankId = await getRankIdByRef(r['rank'], branchId);
+      const rankId = await getRankIdByRef(r['rank']);
       if (!rankId) {
         result.errors.push(
           `[Promotions row ${i + 2}] rank not found (${r['rank']})`
@@ -1306,7 +1588,13 @@ export async function importLookupsFromXlsx(
         continue;
       }
       const countryId = await getCountryIdByRef(r['country']);
-      const personId = await getPersonIdByName(person, countryId, undefined);
+      const personId = await getPersonIdByName(
+        person,
+        undefined,
+        undefined,
+        countryId,
+        undefined
+      );
       if (!personId) {
         result.errors.push(`[PersonPostings row ${i + 2}] person not found`);
         continue;
@@ -1319,12 +1607,18 @@ export async function importLookupsFromXlsx(
       let positionId: string | null = null;
       const posName = norm(r['position']);
       if (posName) {
-        const pos = await prisma.position.findFirst({
+        let pos = await prisma.position.findFirst({
           where: { name: posName },
           select: { id: true },
         });
+        if (!pos && !dryRun) {
+          pos = await prisma.position.create({
+            data: { name: posName },
+            select: { id: true },
+          });
+        }
         positionId = pos?.id ?? null;
-        if (!positionId) {
+        if (!positionId && dryRun) {
           result.errors.push(
             `[PersonPostings row ${i + 2}] position not found (${posName})`
           );
@@ -1333,10 +1627,9 @@ export async function importLookupsFromXlsx(
 
       // Rank at time
       let rankAtTimeId: string | null = null;
-      const branchId = await getBranchIdByRef(r['branch'], countryId);
       const rankAtTimeRef = norm(r['rankattime']);
       if (rankAtTimeRef) {
-        const rid = await getRankIdByRef(rankAtTimeRef, branchId);
+        const rid = await getRankIdByRef(rankAtTimeRef);
         if (!rid) {
           result.errors.push(
             `[PersonPostings row ${
@@ -1673,8 +1966,8 @@ export async function importLookupsFromXlsx(
       const countryId = await getCountryIdByRef(r['country']);
       const personId = await getPersonIdByName(
         person,
-        firstName,
-        lastName,
+        undefined,
+        undefined,
         countryId,
         undefined
       );

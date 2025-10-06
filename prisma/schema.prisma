@@ -159,7 +159,7 @@ model Country {
   // back-relations
   organizations     Organization[] // οργανισμοί με countryId (π.χ. έδρα)
   branches          ServiceBranch[]
-  personnel            Person[]
+  personnel         Person[]
   units             Unit[]
   equipmentOrigin   Equipment[]           @relation("EquipmentOriginCountry")
   meetings          Meeting[]
@@ -187,7 +187,7 @@ model Organization {
   children Organization[] @relation("OrgToChildren")
 
   // back-relations
-  personnel              Person[]
+  personnel           Person[]
   postings            PersonPosting[]
   meetings            Meeting[]
   companyMembers      CompanyOrganization[]
@@ -209,7 +209,7 @@ model Company {
 
   offices      CompanyOffice[]
   memberships  CompanyOrganization[]
-  personnel       Person[] // υπάλληλοι
+  personnel    Person[] // υπάλληλοι
   manufactured Equipment[]           @relation("ManufacturerCompany")
 
   @@map("companies")
@@ -281,7 +281,7 @@ model ServiceBranch {
   country     Country @relation(fields: [countryId], references: [id])
   countryId   String
 
-  personnel      Person[]
+  personnel   Person[]
   ranks       Rank[]
   specialties Specialty[]
   units       Unit[]
@@ -301,7 +301,7 @@ model Rank {
   branch      ServiceBranch? @relation(fields: [branchId], references: [id])
   branchId    String?
 
-  personnel     Person[]
+  personnel  Person[]
   postings   PersonPosting[]
   promotions Promotion[]
 
@@ -456,6 +456,7 @@ model EquipmentAssignment {
 
 model Meeting {
   id                String        @id @default(cuid())
+  code              String?       @unique
   date              DateTime
   location          String?
   country           Country?      @relation(fields: [countryId], references: [id])
