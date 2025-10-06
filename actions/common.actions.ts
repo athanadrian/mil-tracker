@@ -1,6 +1,5 @@
 'use server';
 
-import { cache as reactCache } from 'react';
 import { unstable_cache as cache, revalidateTag } from 'next/cache';
 
 import { prisma } from '@/lib/db';
@@ -133,7 +132,7 @@ const ENTITY_HANDLERS: Record<EntityKey, Handler> = {
 };
 
 // Ενιαία server action (με caching ανά request)
-export const getEntityName = reactCache(
+export const getEntityName = cache(
   async (entity: EntityKey, id: string): Promise<string | null> => {
     const handler = ENTITY_HANDLERS[entity];
     if (!handler || !id) return null;
@@ -189,7 +188,6 @@ export const getSidebarCounts = cache(
     ]);
 
     const tools = lookUpDataLinks.length;
-
     const result: AdminCounts = {
       // tools/personnel
       directorates: FAKE_LOOKUPS.directorates,

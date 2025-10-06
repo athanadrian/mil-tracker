@@ -18,7 +18,14 @@ export function useCounts() {
       setState((s) => ({ ...s, counts: { ...s.counts, ...next } })),
   };
 }
-
+function hashCounts(c: AppData['counts']) {
+  // μικρό, σταθερό hash — αρκεί για key
+  try {
+    return JSON.stringify(c);
+  } catch {
+    return String(Date.now());
+  }
+}
 export function AppDataProvider({
   initial,
   children,
@@ -26,7 +33,11 @@ export function AppDataProvider({
   initial: AppData;
   children: React.ReactNode;
 }) {
+  const key = React.useMemo(() => hashCounts(initial.counts), [initial.counts]);
+
   return (
-    <AppDataCtx.Provider initial={initial}>{children}</AppDataCtx.Provider>
+    <AppDataCtx.Provider initial={initial} key={key}>
+      {children}
+    </AppDataCtx.Provider>
   );
 }

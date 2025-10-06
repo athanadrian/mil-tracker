@@ -1,108 +1,34 @@
-// 'use client';
-
-// import React, { useState } from 'react';
-// import { importLookupsFromXlsx } from '@/actions/import.actions';
-// import { Card, CardHeader, CardTitle } from '@/components/ui/card';
-// import { Button } from '@/components/ui/button';
-// import { Label } from '@/components/ui/label';
-// import { Switch } from '@/components/ui/switch';
-
-// const ImportContainer = () => {
-//   const [file, setFile] = useState<File | null>(null);
-//   const [dryRun, setDryRun] = useState(true);
-//   const [pending, setPending] = useState(false);
-//   const [log, setLog] = useState<any | null>(null);
-
-//   const onSubmit = async (e: React.FormEvent) => {
-//     e.preventDefault();
-//     if (!file) return;
-
-//     setPending(true);
-//     try {
-//       const fd = new FormData();
-//       fd.append('file', file);
-//       fd.append('dryRun', String(dryRun));
-//       const res = await importLookupsFromXlsx(fd);
-//       setLog(res);
-//     } finally {
-//       setPending(false);
-//     }
-//   };
-
-//   return (
-//     <Card>
-//       <CardHeader className='pb-2'>
-//         <CardTitle>Εισαγωγή δεδομένων από Excel</CardTitle>
-//       </CardHeader>
-//       <form onSubmit={onSubmit} className='p-4 space-y-4'>
-//         <div className='flex items-center gap-3'>
-//           <input
-//             type='file'
-//             accept='.xlsx'
-//             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-//           />
-//           <div className='flex items-center gap-2'>
-//             <Switch checked={dryRun} onCheckedChange={setDryRun} id='dryrun' />
-//             <Label htmlFor='dryrun'>Dry run (χωρίς αποθήκευση)</Label>
-//           </div>
-//           <Button type='submit' disabled={!file || pending}>
-//             {pending
-//               ? 'Γίνεται εισαγωγή…'
-//               : dryRun
-//               ? 'Προσομοίωση'
-//               : 'Εισαγωγή'}
-//           </Button>
-//         </div>
-
-//         {log && (
-//           <div className='rounded-md border bg-muted/30 p-3 text-sm'>
-//             <div className='font-semibold mb-1'>Αποτέλεσμα:</div>
-//             <div className='grid grid-cols-2 gap-2'>
-//               <div>
-//                 <div className='font-medium'>Created</div>
-//                 <pre className='text-xs'>
-//                   {JSON.stringify(log.created, null, 2)}
-//                 </pre>
-//               </div>
-//               <div>
-//                 <div className='font-medium'>Updated</div>
-//                 <pre className='text-xs'>
-//                   {JSON.stringify(log.updated, null, 2)}
-//                 </pre>
-//               </div>
-//             </div>
-//             {log.errors?.length ? (
-//               <>
-//                 <div className='font-medium mt-2 text-red-600'>Errors</div>
-//                 <ul className='list-disc pl-5'>
-//                   {log.errors.map((e: string, i: number) => (
-//                     <li key={i} className='text-xs'>
-//                       {e}
-//                     </li>
-//                   ))}
-//                 </ul>
-//               </>
-//             ) : null}
-//             <div className='mt-2 opacity-70'>Dry run: {String(log.dryRun)}</div>
-//           </div>
-//         )}
-//       </form>
-//     </Card>
-//   );
-// };
-// export default ImportContainer;
-
-/* ------------------------------ CLIENT UI ------------------------------ */
-
 'use client';
 
-import React, { useState } from 'react';
-import { importLookupsFromXlsx } from '@/actions/import.actions';
+import React, { useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+
+import {
+  importLookupsFromXlsx,
+  type ImportResult,
+} from '@/actions/import.actions';
+import { wipeDatabase } from '@/actions/import.actions';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
+import { AppIcon } from '@/components/app-ui';
+import { appIcons } from '@/constants/app-icons';
+import { cn } from '@/lib/utils';
+
+// shadcn/ui AlertDialog
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 const ENTITY_LIST = [
   { key: 'loadRegions', label: 'Regions' },
@@ -111,17 +37,36 @@ const ENTITY_LIST = [
   { key: 'loadRanks', label: 'Ranks' },
   { key: 'loadOrganizations', label: 'Organizations' },
   { key: 'loadUnits', label: 'Units' },
+  { key: 'loadSpecialties', label: 'Specialties' },
+  { key: 'loadPositions', label: 'Positions' },
   { key: 'loadPersonnel', label: 'Personnel' },
   { key: 'loadEquipment', label: 'Equipment' },
+  { key: 'loadCompanies', label: 'Companies' },
+  { key: 'loadCompanyOffices', label: 'CompanyOffices' },
+  { key: 'loadCompanyOrganizations', label: 'CompanyOrganizations' },
+  { key: 'loadCountryOrganizations', label: 'CountryOrganizations' },
+  { key: 'loadPromotions', label: 'Promotions' },
+  { key: 'loadMeetings', label: 'Meetings' },
+  { key: 'loadMeetingTopics', label: 'MeetingTopics' },
+  { key: 'loadMeetingParticipants', label: 'MeetingParticipants' },
+  { key: 'loadPersonPostings', label: 'PersonPostings' },
+  { key: 'loadEquipmentAssignments', label: 'EquipmentAssignments' },
 ] as const;
 
 type EntityKey = (typeof ENTITY_LIST)[number]['key'];
 
 const ImportContainer = () => {
+  const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [dryRun, setDryRun] = useState(true);
   const [pending, setPending] = useState(false);
-  const [log, setLog] = useState<any | null>(null);
+  const [log, setLog] = useState<ImportResult | null>(null);
+  const [wipeBefore, setWipeBefore] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [wipeStatus, setWipeStatus] = useState<string | null>(null);
+
+  const fileRef = useRef<HTMLInputElement | null>(null);
+
   const [selected, setSelected] = useState<Record<EntityKey, boolean>>({
     loadRegions: true,
     loadCountries: true,
@@ -129,16 +74,41 @@ const ImportContainer = () => {
     loadRanks: true,
     loadOrganizations: true,
     loadUnits: true,
+    loadSpecialties: true,
+    loadPositions: true,
+
     loadPersonnel: false,
     loadEquipment: false,
+    loadCompanies: false,
+    loadCompanyOffices: false,
+    loadCompanyOrganizations: false,
+    loadCountryOrganizations: false,
+    loadPromotions: false,
+    loadMeetings: false,
+    loadMeetingTopics: false,
+    loadMeetingParticipants: false,
+    loadPersonPostings: false,
+    loadEquipmentAssignments: false,
   });
 
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const doImport = async () => {
     if (!file) return;
 
     setPending(true);
+    setWipeStatus(null);
     try {
+      // αν dryRun, αγνοούμε το wipe
+      if (wipeBefore && !dryRun) {
+        setWipeStatus('Γίνεται καθαρισμός βάσης…');
+        const wipe = await wipeDatabase();
+        if (!wipe.ok) {
+          setWipeStatus(`Σφάλμα στον καθαρισμό: ${wipe.error || 'unknown'}`);
+          setPending(false);
+          return;
+        }
+        setWipeStatus('Ο καθαρισμός ολοκληρώθηκε.');
+      }
+
       const fd = new FormData();
       fd.append('file', file);
       fd.append('dryRun', String(dryRun));
@@ -147,9 +117,25 @@ const ImportContainer = () => {
       }
       const res = await importLookupsFromXlsx(fd);
       setLog(res);
+
+      if (!res.dryRun) {
+        router.refresh();
+      }
     } finally {
       setPending(false);
     }
+  };
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!file) return;
+
+    if (wipeBefore && !dryRun) {
+      setConfirmOpen(true); // άνοιγμα dialog επιβεβαίωσης
+      return;
+    }
+    // αλλιώς, κάνε άμεσα import
+    doImport();
   };
 
   const toggleAll = (value: boolean) => {
@@ -160,23 +146,124 @@ const ImportContainer = () => {
     });
   };
 
+  //  console.log('file', e.target.files[0]);
+  //     const image = e.target.files[0];
+  //     console.log('file image', URL.createObjectURL(image));
+
+  const onPickFile = (e: any) => {
+    console.log('file', e.target.files);
+    fileRef.current?.click();
+  };
+  const onClearFile = () => {
+    setFile(null);
+    if (fileRef.current) fileRef.current.value = '';
+  };
+
   return (
     <Card>
       <CardHeader className='pb-2'>
         <CardTitle>Εισαγωγή δεδομένων από Excel</CardTitle>
       </CardHeader>
-      <form onSubmit={onSubmit} className='p-4 space-y-4'>
-        <div className='flex items-center gap-3'>
-          <input
-            type='file'
-            accept='.xlsx'
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-          />
-          <div className='flex items-center gap-2'>
-            <Switch checked={dryRun} onCheckedChange={setDryRun} id='dryrun' />
-            <Label htmlFor='dryrun'>Dry run (χωρίς αποθήκευση)</Label>
+
+      <form onSubmit={onSubmit} className='p-4 space-y-6'>
+        {/* File picker */}
+        <div className='space-y-2'>
+          <Label className='text-sm font-medium'>Αρχείο (.xlsx)</Label>
+          <div
+            className={cn(
+              'flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4',
+              'rounded-lg border bg-muted/30 p-3'
+            )}
+          >
+            <input
+              ref={fileRef}
+              type='file'
+              accept='.xlsx'
+              className='hidden'
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            />
+
+            <div className='flex-1 min-w-0'>
+              {file ? (
+                <div className='truncate text-sm font-medium'>
+                  <AppIcon
+                    icon={appIcons.file}
+                    className='mr-1 inline'
+                    size={14}
+                  />
+                  {file.name}
+                </div>
+              ) : (
+                <div className='text-sm text-muted-foreground'>
+                  Επίλεξε αρχείο Excel (.xlsx) με τα υποστηριζόμενα sheets.
+                </div>
+              )}
+              <div className='text-xs text-muted-foreground'>
+                Χρησιμοποίησε το template για σωστά headers.
+              </div>
+            </div>
+
+            <div className='flex items-center gap-2 shrink-0'>
+              {file && (
+                <Button
+                  type='button'
+                  variant='ghost'
+                  size='sm'
+                  onClick={onClearFile}
+                >
+                  <AppIcon icon={appIcons.delete} size={14} className='mr-1' />
+                  Καθαρισμός
+                </Button>
+              )}
+              <Button type='button' variant='secondary' onClick={onPickFile}>
+                <AppIcon icon={appIcons.upload} size={14} className='mr-1' />
+                Επιλογή αρχείου
+              </Button>
+            </div>
           </div>
-          <Button type='submit' disabled={!file || pending}>
+        </div>
+
+        {/* Options row */}
+        <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
+          <div className='flex flex-col gap-4'>
+            <div className='flex items-center gap-2'>
+              <Switch
+                checked={dryRun}
+                onCheckedChange={setDryRun}
+                id='dryrun'
+              />
+              <Label htmlFor='dryrun'>Dry run (χωρίς αποθήκευση)</Label>
+            </div>
+
+            <div className='flex items-center gap-2'>
+              <Checkbox
+                id='wipeBefore'
+                checked={wipeBefore}
+                onCheckedChange={(v) => setWipeBefore(!!v)}
+                disabled={dryRun} // σε dryRun δεν έχει νόημα
+              />
+              <Label
+                htmlFor='wipeBefore'
+                className={cn(dryRun && 'opacity-50')}
+              >
+                Καθαρισμός βάσης πριν την εισαγωγή
+              </Label>
+            </div>
+
+            {dryRun && (
+              <div className='text-xs text-muted-foreground'>
+                Το Dry run είναι ενεργό — ο καθαρισμός βάσης θα αγνοηθεί.
+              </div>
+            )}
+            {wipeStatus && <div className='text-xs'>{wipeStatus}</div>}
+          </div>
+
+          {/* Submit */}
+          <Button
+            type='submit'
+            disabled={!file || pending}
+            className='sm:self-end'
+          >
             {pending
               ? 'Γίνεται εισαγωγή…'
               : dryRun
@@ -185,8 +272,9 @@ const ImportContainer = () => {
           </Button>
         </div>
 
-        <div className='rounded-md border p-3'>
-          <div className='flex items-center justify-between mb-2'>
+        {/* Entities */}
+        <div className='rounded-lg border'>
+          <div className='flex items-center justify-between gap-2 px-3 py-2 border-b bg-muted/40 sticky top-0'>
             <div className='font-medium'>Ποιές οντότητες να φορτώσω;</div>
             <div className='flex gap-2 text-xs'>
               <Button
@@ -207,55 +295,93 @@ const ImportContainer = () => {
               </Button>
             </div>
           </div>
-          <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2'>
-            {ENTITY_LIST.map(({ key, label }) => (
-              <label key={key} className='flex items-center gap-2 text-sm'>
-                <Checkbox
-                  checked={!!selected[key as EntityKey]}
-                  onCheckedChange={(v) =>
-                    setSelected((s) => ({ ...s, [key]: !!v }))
-                  }
-                />
-                <span>{label}</span>
-              </label>
-            ))}
+
+          <div className='p-3 max-h-[340px] overflow-auto'>
+            <div className='grid gap-2 grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5'>
+              {ENTITY_LIST.map(({ key, label }) => (
+                <label
+                  key={key}
+                  className='flex items-center gap-2 rounded-md border bg-background px-2 py-1.5 text-sm hover:bg-muted/50'
+                >
+                  <Checkbox
+                    checked={!!selected[key as EntityKey]}
+                    onCheckedChange={(v) =>
+                      setSelected((s) => ({ ...s, [key]: !!v }))
+                    }
+                  />
+                  <span className='truncate'>{label}</span>
+                </label>
+              ))}
+            </div>
           </div>
         </div>
 
+        {/* Results */}
         {log && (
           <div className='rounded-md border bg-muted/30 p-3 text-sm'>
-            <div className='font-semibold mb-1'>Αποτέλεσμα:</div>
-            <div className='grid grid-cols-2 gap-2'>
-              <div>
-                <div className='font-medium'>Created</div>
-                <pre className='text-xs'>
+            <div className='font-semibold mb-2'>Αποτέλεσμα:</div>
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-3'>
+              <div className='rounded-md border p-2 bg-background/60'>
+                <div className='font-medium mb-1'>Created</div>
+                <pre className='text-xs overflow-auto max-h-64'>
                   {JSON.stringify(log.created, null, 2)}
                 </pre>
               </div>
-              <div>
-                <div className='font-medium'>Updated</div>
-                <pre className='text-xs'>
+              <div className='rounded-md border p-2 bg-background/60'>
+                <div className='font-medium mb-1'>Updated</div>
+                <pre className='text-xs overflow-auto max-h-64'>
                   {JSON.stringify(log.updated, null, 2)}
                 </pre>
               </div>
             </div>
+
             {log.errors?.length ? (
-              <>
-                <div className='font-medium mt-2 text-red-600'>Errors</div>
-                <ul className='list-disc pl-5'>
+              <div className='mt-3 rounded-md border bg-background/60 p-2'>
+                <div className='font-medium text-red-600 mb-1'>Errors</div>
+                <ul className='list-disc pl-5 space-y-0.5 max-h-60 overflow-auto'>
                   {log.errors.map((e: string, i: number) => (
                     <li key={i} className='text-xs'>
                       {e}
                     </li>
                   ))}
                 </ul>
-              </>
+              </div>
             ) : null}
-            <div className='mt-2 opacity-70'>Dry run: {String(log.dryRun)}</div>
+
+            <div className='mt-2 opacity-70 text-xs'>
+              Dry run: {String(log.dryRun)}
+            </div>
           </div>
         )}
       </form>
+
+      {/* Confirm wipe dialog */}
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Επιβεβαίωση καθαρισμού</AlertDialogTitle>
+            <AlertDialogDescription>
+              Θα καθαριστούν <strong>όλοι</strong> οι πίνακες της βάσης
+              (περιλαμβάνονται άτομα, οργανισμοί, μονάδες, εξοπλισμοί, κ.λπ.). Η
+              ενέργεια δεν είναι αναστρέψιμη. Θέλεις να συνεχίσεις;
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Άκυρο</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setConfirmOpen(false);
+                // Προχώρα στο import (θα καλέσει wipe πρώτα)
+                doImport();
+              }}
+            >
+              Ναι, καθάρισε & εισήγαγε
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 };
+
 export default ImportContainer;

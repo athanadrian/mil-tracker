@@ -72,14 +72,32 @@ async function upsertSpecialty(
 
 async function upsertPosition(
   name: string,
-  code?: string,
+  code?: string | null,
   description?: string
 ) {
-  return prisma.position.upsert({
-    where: { name }, // name unique
-    update: { code, description },
-    create: { name, code, description },
+  if (code) {
+    // απαιτεί το code να είναι @unique στο schema
+    return prisma.position.upsert({
+      where: { code }, // OK: code είναι unique
+      update: { name, description },
+      create: { name, code, description },
+    });
+  }
+
+  // Δεν έχουμε unique κλειδί -> κάνε χειροκίνητο find/update/create
+  const existing = await prisma.position.findFirst({
+    where: { name }, // όχι unique, απλά βρίσκουμε το πρώτο
+    select: { id: true },
   });
+
+  if (existing) {
+    return prisma.position.update({
+      where: { id: existing.id },
+      data: { name, description },
+    });
+  }
+
+  return prisma.position.create({ data: { name, description } });
 }
 
 async function upsertUnit(
@@ -127,7 +145,7 @@ async function findOrCreatePerson(opts: {
   rankId?: string | null;
   email?: string | null;
   phone?: string | null;
-  notes?: string | null;
+  description?: string | null;
   status?: ServiceStatus;
 }) {
   // Δεν υπάρχει μοναδικό constraint στο άτομο, κάνουμε findFirst “λογικά”:
@@ -153,7 +171,7 @@ async function findOrCreatePerson(opts: {
       rankId: opts.rankId || undefined,
       email: opts.email || undefined,
       phone: opts.phone || undefined,
-      notes: opts.notes || undefined,
+      description: opts.description || undefined,
       status: opts.status ?? ServiceStatus.ACTIVE,
     },
   });
@@ -190,7 +208,7 @@ async function createPosting(opts: {
   startDate: Date;
   endDate?: Date | null;
   installationYear?: number | null;
-  notes?: string | null;
+  description?: string | null;
 }) {
   return prisma.personPosting.create({
     data: {
@@ -207,7 +225,7 @@ async function createPosting(opts: {
       startDate: opts.startDate,
       endDate: opts.endDate || undefined,
       installationYear: opts.installationYear || undefined,
-      notes: opts.notes || undefined,
+      description: opts.description || undefined,
     },
   });
 }
@@ -350,7 +368,7 @@ async function main() {
     rankId: rMaj.id,
     email: 'n.papadopoulos@example.mil',
     phone: '+30 210 0000000',
-    notes: 'Armor officer',
+    description: 'Armor officer',
     status: ServiceStatus.ACTIVE,
   });
 
@@ -381,7 +399,7 @@ async function main() {
     startDate: new Date('2022-07-01'),
     endDate: new Date('2024-06-30'),
     installationYear: 2022,
-    notes: 'Assumed command of 21st TB',
+    description: 'Assumed command of 21st TB',
   });
 
   // p1: Brigade Staff Officer at 5th Armored Brigade
@@ -393,7 +411,7 @@ async function main() {
     type: PostingType.TRANSFER,
     startDate: new Date('2024-07-01'),
     installationYear: 2024,
-    notes: 'Posted to Brigade HQ staff',
+    description: 'Posted to Brigade HQ staff',
   });
 
   // p2: Platoon Leader at 21st Tank Battalion

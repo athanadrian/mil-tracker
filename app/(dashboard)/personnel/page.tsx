@@ -28,7 +28,7 @@ const PersonnelPage = async ({ searchParams }: PersonnelPageProps) => {
       include: { countries: true, branches: true, ranks: true },
     }),
   ]);
-  console.log('selectOptions', selectOptions);
+
   return (
     <div className='p-4 space-y-6'>
       <AppPageBreadcrumbs

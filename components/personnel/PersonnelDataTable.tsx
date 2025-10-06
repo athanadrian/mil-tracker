@@ -1,48 +1,3 @@
-// import { personnelColumns } from '@/components/personnel';
-// import { AppDataTable } from '@/components/app-ui';
-// import { PersonDTO } from '@/actions/person.actions';
-// import { useEffect } from 'react';
-
-// type PersonnelDataTableProps = {
-//   rows: PersonDTO[];
-//   pageSize: number;
-//   setPageSize: React.Dispatch<React.SetStateAction<number>>;
-//   pageIndex: number;
-//   setPageIndex: React.Dispatch<React.SetStateAction<number>>;
-// };
-
-// const PersonnelDataTable = ({
-//   rows,
-//   pageSize,
-//   setPageSize,
-//   pageIndex,
-//   setPageIndex,
-// }: PersonnelDataTableProps) => {
-//   console.log('pageSize', pageSize);
-//   console.log('pageIndex', pageIndex);
-
-//   useEffect(() => {
-//     if (!Number.isFinite(pageSize) || pageSize < 1) {
-//       setPageSize(10); // default
-//     }
-//   }, [pageSize, setPageSize]);
-
-//   return (
-//     // client sort (table-driven):
-//     <AppDataTable
-//       data={rows}
-//       columns={personnelColumns}
-//       baseIndex={pageIndex * pageSize}
-//       pageIndex={pageIndex}
-//       onPageIndexChange={setPageIndex}
-//       pageSize={pageSize}
-//       onPageSizeChange={setPageSize}
-//     />
-//   );
-// };
-
-// export default PersonnelDataTable;
-
 'use client';
 
 import * as React from 'react';
@@ -73,7 +28,7 @@ const PersonnelDataTable = ({
   onView,
   onEdit,
   initialVisibility,
-  pageSizeOptions = [1, 10, 25, 50, 100],
+  pageSizeOptions = [10, 25, 50, 100],
 }: PersonnelDataTableProps) => {
   // columns πρέπει να είναι stable reference
   const columns = React.useMemo(

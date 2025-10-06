@@ -47,7 +47,7 @@ import * as React from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { PersonDTO } from '@/actions/person.actions';
 import { Button } from '@/components/ui/button';
-import { AppIcon } from '@/components/app-ui';
+import { AppCrudMenu, AppIcon } from '@/components/app-ui';
 import { appIcons } from '@/constants/app-icons';
 import { cn } from '@/lib/utils';
 // Αν έχεις ήδη helpers:
@@ -291,24 +291,38 @@ export function makePersonnelColumns(opts?: {
       cell: ({ row }) => {
         const p = row.original;
         return (
-          <div className='w-full flex items-center justify-end gap-1'>
-            <Button
-              variant='ghost'
-              size='icon'
-              title='Προβολή'
-              onClick={() => onView?.(p)}
-            >
-              <AppIcon icon={appIcons.view} size={16} />
-            </Button>
-            <Button
-              variant='ghost'
-              size='icon'
-              title='Επεξεργασία'
-              onClick={() => onEdit?.(p)}
-            >
-              <AppIcon icon={appIcons.edit} size={16} />
-            </Button>
-          </div>
+          <AppCrudMenu
+            trigger={
+              <button
+                className='inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent'
+                aria-label='Actions'
+              >
+                <AppIcon icon={appIcons.dots_menu} size={16} />
+              </button>
+            }
+            showView
+            showEdit
+            showDelete
+            onView={() => onView?.(p)}
+            onEdit={() => onEdit?.(p)}
+            onDelete={() => {
+              /* άνοιξε dialog διαγραφής αν έχεις */
+            }}
+            items={[
+              {
+                key: 'add-intallation',
+                label: 'Προσθήκη Τοποθέτησης',
+                icon: <AppIcon icon={appIcons.add} />,
+                onAction: () => {},
+              },
+              {
+                key: 'add-work',
+                label: 'Προσθήκη Προαγωγής',
+                icon: <AppIcon icon={appIcons.add} />,
+                onAction: () => {},
+              },
+            ]}
+          />
         );
       },
     },

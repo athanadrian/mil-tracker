@@ -399,7 +399,7 @@ const PersonnelContainer = ({
         </>
       ) : (
         <PersonnelDataTable
-          rows={visibleRows}
+          rows={sortedRows}
           pageIndex={pageIndex}
           pageSize={pageSize}
           setPageIndex={setPageIndex}

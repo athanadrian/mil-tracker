@@ -18,7 +18,12 @@ import {
   FiDatabase,
 } from 'react-icons/fi';
 import { RiUser2Line, RiUserSettingsLine, RiAdminLine } from 'react-icons/ri';
-import { LuCommand, LuChevronDown, LuArrowUpDown } from 'react-icons/lu';
+import {
+  LuCommand,
+  LuChevronDown,
+  LuArrowUpDown,
+  LuUpload,
+} from 'react-icons/lu';
 import { IoMdPaper } from 'react-icons/io';
 import { CgUserList } from 'react-icons/cg';
 import { IoAdd, IoDownloadSharp } from 'react-icons/io5';
@@ -117,6 +122,7 @@ export const appIcons = {
   cards: PiCreditCardLight,
 
   // ACTIONS
+  upload: LuUpload,
   sort: BiSortAlt2,
   add: IoAdd,
   edit: CiEdit,
