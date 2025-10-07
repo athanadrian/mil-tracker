@@ -56,6 +56,7 @@ import {
   getAvatarFromImages,
   yearFromISO,
 } from '@/lib/utils';
+import { Flag } from '../common';
 
 function formatInstallationRow(
   inst: PersonDTO['installations'][number]
@@ -196,10 +197,12 @@ export function makePersonnelColumns(opts?: {
       accessorFn: (p) => p.country?.name ?? '',
       sortingFn: 'alphanumeric',
       size: 160,
-      cell: ({ row }) =>
-        row.original.country?.flag
-          ? row.original.country?.flag
-          : row.original.country?.name ?? '—',
+      cell: ({ row }) => (
+        <Flag
+          flag={row.original.country?.flag}
+          name={row.original.country?.name}
+        />
+      ),
     },
 
     // Κατάσταση

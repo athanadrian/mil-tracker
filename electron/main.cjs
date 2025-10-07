@@ -7,10 +7,14 @@ const {
   shell,
   dialog,
   Menu,
+  protocol,
 } = require('electron');
 const path = require('node:path');
-const fs = require('node:fs');
+const fs = require('node:fs'); // ✅ Promises API σε CJS
+const promiseFs = require('node:fs/promises'); // ✅ Promises API σε CJS
+const { lookup: mimeLookup } = require('mime-types');
 const net = require('node:net');
+//const mime = require('mime');
 const { fork, spawn } = require('node:child_process');
 const { registerIpcHandlers } = require('./ipc/index.cjs');
 
@@ -29,6 +33,7 @@ const EXE_DIR = () => {
 };
 const APP_ROOT = () => path.join(process.resourcesPath, 'app'); // resources/app
 const PROD_DB = () => path.join(EXE_DIR(), 'data', 'mil.db'); // δίπλα στο exe
+const BASE_DIR = path.join(app.getAppPath(), 'static'); // adjust
 
 /* ===== Minimal logger (always-on) ===== */
 function getLogPath() {
@@ -288,9 +293,105 @@ async function createWindow() {
   }
 }
 
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'local',
+    privileges: {
+      standard: true, // να συμπεριφέρεται σαν κανονικό scheme (URL parsing)
+      secure: true, // ως "secure"
+      supportFetchAPI: true, // για protocol.handle με Response
+      stream: true, // streaming
+      corsEnabled: true, // να μην μπλοκάρεται από CORS εντός app
+    },
+  },
+]);
+
 /* ===== App lifecycle ===== */
 app.whenReady().then(async () => {
   try {
+    // protocol.handle('local', async (request) => {
+    //   try {
+    //     const u = new URL(request.url); // π.χ. local://c/Users/...  ή  local:///C:/Users/...
+
+    //     let fullPath;
+
+    //     // Μορφή 1: local://C/Users/...
+    //     if (u.hostname && /^[a-z]$/i.test(u.hostname)) {
+    //       const drive = u.hostname.toUpperCase(); // "C"
+    //       fullPath = `${drive}:${u.pathname}`; // "C:/Users/..."
+    //     }
+    //     // Μορφή 2: local:///C:/Users/...
+    //     else if (/^\/[A-Za-z]:\//.test(u.pathname)) {
+    //       fullPath = u.pathname.slice(1); // "C:/Users/..."
+    //     }
+    //     // POSIX absolute
+    //     else {
+    //       fullPath = u.pathname; // "/Users/..."
+    //     }
+
+    //     fullPath = decodeURIComponent(fullPath);
+    //     if (process.platform === 'win32') {
+    //       fullPath = fullPath.replace(/\//g, path.sep); // -> backslashes
+    //     }
+
+    //     console.log('[local] →', fullPath);
+
+    //     const data = await fs.readFile(fullPath);
+    //     const type = mime.getType(fullPath) || 'application/octet-stream';
+    //     return new Response(data, { headers: { 'Content-Type': type } });
+    //   } catch (err) {
+    //     console.error('[local] ERROR:', request.url, err);
+    //     // 404 όταν το αρχείο λείπει, 500 για άλλα
+    //     const msg = String(err?.code || '')
+    //       .toLowerCase()
+    //       .includes('enoent')
+    //       ? { status: 404, text: 'Not Found' }
+    //       : { status: 500, text: 'Internal Error' };
+    //     return new Response(msg.text, { status: msg.status });
+    //   }
+    // });
+
+    protocol.handle('local', async (request) => {
+      const u = new URL(request.url); // π.χ. local://c/Users/... ή local:///C:/Users/...
+      let fullPath;
+
+      try {
+        if (u.hostname && /^[a-z]$/i.test(u.hostname)) {
+          const drive = u.hostname.toUpperCase(); // "C"
+          fullPath = `${drive}:${u.pathname}`; // "C:/Users/..."
+        } else if (/^\/[A-Za-z]:\//.test(u.pathname)) {
+          fullPath = u.pathname.slice(1); // "C:/Users/..."
+        } else {
+          fullPath = u.pathname; // "/Users/..." (POSIX)
+        }
+
+        fullPath = decodeURIComponent(fullPath);
+        if (process.platform === 'win32') {
+          fullPath = fullPath.replace(/\//g, path.sep); // -> backslashes
+        }
+
+        console.log('[local] REQUEST:', request.url);
+        console.log('[local] MAPPED :', fullPath);
+
+        const data = await promiseFs.readFile(fullPath); // ✅ promises.readFile
+        const type = mimeLookup(fullPath) || 'application/octet-stream';
+
+        return new Response(data, { headers: { 'Content-Type': type } });
+      } catch (err) {
+        const code = String(err?.code || '');
+        let status = 500;
+        if (code === 'ENOENT') status = 404;
+        else if (code === 'EACCES') status = 403;
+
+        console.error('[local] ERROR  :', request.url, '→', fullPath);
+        console.error('[local] CODE   :', code);
+        console.error('[local] STACK  :', err?.stack || err);
+        return new Response(`${status} ${code || 'Internal Error'}`, {
+          status,
+        });
+      }
+    });
+
     log('App start', 'isDev=' + isDev(), 'exeDir=' + EXE_DIR());
     app.setAppUserModelId('com.doa.miltracker');
     Menu.setApplicationMenu(null);

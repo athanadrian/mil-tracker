@@ -1,4 +1,5 @@
 export {};
+declare module 'mime';
 declare global {
   interface Window {
     api?: {

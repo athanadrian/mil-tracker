@@ -5,6 +5,7 @@ import LoadingBar from './LoadingBar';
 import SortableTh from './SortableTh';
 import FiltersContainer from './FiltersContainer';
 import PaginationControls from './PaginationControls';
+import Flag from './Flag';
 
 export {
   Stat,
@@ -14,4 +15,5 @@ export {
   SortableTh,
   FiltersContainer,
   PaginationControls,
+  Flag,
 };
