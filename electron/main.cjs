@@ -14,15 +14,11 @@ const fs = require('node:fs'); // ✅ Promises API σε CJS
 const promiseFs = require('node:fs/promises'); // ✅ Promises API σε CJS
 const { lookup: mimeLookup } = require('mime-types');
 const net = require('node:net');
-//const mime = require('mime');
 const { fork, spawn } = require('node:child_process');
 const { registerIpcHandlers } = require('./ipc/index.cjs');
 
-const PORT = Number(process.env.PORT) || 5123;
-let win = null;
-let nextChild = null;
-
 /* ===== Basics ===== */
+const PORT = Number(process.env.PORT) || 5123;
 const isDev = () => !app.isPackaged;
 const EXE_DIR = () => {
   try {
@@ -33,7 +29,9 @@ const EXE_DIR = () => {
 };
 const APP_ROOT = () => path.join(process.resourcesPath, 'app'); // resources/app
 const PROD_DB = () => path.join(EXE_DIR(), 'data', 'mil.db'); // δίπλα στο exe
-const BASE_DIR = path.join(app.getAppPath(), 'static'); // adjust
+
+let win = null;
+let nextChild = null;
 
 /* ===== Minimal logger (always-on) ===== */
 function getLogPath() {
@@ -43,6 +41,7 @@ function getLogPath() {
     return path.join(process.cwd(), 'mil-tracker.log');
   }
 }
+
 function log(...args) {
   const line = `[${new Date().toISOString()}] ${args
     .map((x) =>
@@ -80,6 +79,7 @@ function ensureDir(p) {
     fs.mkdirSync(p, { recursive: true });
   } catch {}
 }
+
 function ensureProdDbPresent() {
   const dest = PROD_DB();
   ensureDir(path.dirname(dest));
@@ -98,6 +98,7 @@ function ensureProdDbPresent() {
     }
   }
 }
+
 function waitForPort(port, host = '127.0.0.1', timeoutMs = 40000) {
   const start = Date.now();
   return new Promise((resolve, reject) => {
@@ -116,6 +117,7 @@ function waitForPort(port, host = '127.0.0.1', timeoutMs = 40000) {
     })();
   });
 }
+
 function getStartPath() {
   try {
     const flag = path.join(app.getPath('userData'), 'debug-health.flag');
@@ -309,48 +311,6 @@ protocol.registerSchemesAsPrivileged([
 /* ===== App lifecycle ===== */
 app.whenReady().then(async () => {
   try {
-    // protocol.handle('local', async (request) => {
-    //   try {
-    //     const u = new URL(request.url); // π.χ. local://c/Users/...  ή  local:///C:/Users/...
-
-    //     let fullPath;
-
-    //     // Μορφή 1: local://C/Users/...
-    //     if (u.hostname && /^[a-z]$/i.test(u.hostname)) {
-    //       const drive = u.hostname.toUpperCase(); // "C"
-    //       fullPath = `${drive}:${u.pathname}`; // "C:/Users/..."
-    //     }
-    //     // Μορφή 2: local:///C:/Users/...
-    //     else if (/^\/[A-Za-z]:\//.test(u.pathname)) {
-    //       fullPath = u.pathname.slice(1); // "C:/Users/..."
-    //     }
-    //     // POSIX absolute
-    //     else {
-    //       fullPath = u.pathname; // "/Users/..."
-    //     }
-
-    //     fullPath = decodeURIComponent(fullPath);
-    //     if (process.platform === 'win32') {
-    //       fullPath = fullPath.replace(/\//g, path.sep); // -> backslashes
-    //     }
-
-    //     console.log('[local] →', fullPath);
-
-    //     const data = await fs.readFile(fullPath);
-    //     const type = mime.getType(fullPath) || 'application/octet-stream';
-    //     return new Response(data, { headers: { 'Content-Type': type } });
-    //   } catch (err) {
-    //     console.error('[local] ERROR:', request.url, err);
-    //     // 404 όταν το αρχείο λείπει, 500 για άλλα
-    //     const msg = String(err?.code || '')
-    //       .toLowerCase()
-    //       .includes('enoent')
-    //       ? { status: 404, text: 'Not Found' }
-    //       : { status: 500, text: 'Internal Error' };
-    //     return new Response(msg.text, { status: msg.status });
-    //   }
-    // });
-
     protocol.handle('local', async (request) => {
       const u = new URL(request.url); // π.χ. local://c/Users/... ή local:///C:/Users/...
       let fullPath;

@@ -656,18 +656,18 @@ export async function preflightXlsx(
 
   // ---------- UPDATED: MeetingParticipants supports fullname ----------
   mp.forEach((r, i) => {
-    const dateOk = !!asDateOrNull(r['date']);
-    if (!dateOk) {
-      errors.push(`[MeetingParticipants row ${i + 2}] invalid date`);
-      return;
-    }
+    // const dateOk = !!asDateOrNull(r['date']);
+    // if (!dateOk) {
+    //   errors.push(`[MeetingParticipants row ${i + 2}] invalid date`);
+    //   return;
+    // }
     const hasFull = !!norm(r['person']) || !!norm(r['fullname']);
-    const hasParts = !!norm(r['firstname']) && !!norm(r['lastname']);
-    if (!hasFull && !hasParts) {
+    //const hasParts = !!norm(r['firstname']) && !!norm(r['lastname']);
+    if (!hasFull) {
       errors.push(
         `[MeetingParticipants row ${
           i + 2
-        }] missing person name (δώσε "person"/"fullname" ή "firstname"+"lastname")`
+        }] missing person  (δώσε "person"/"fullname")`
       );
     }
   });
@@ -1852,6 +1852,7 @@ export async function importLookupsFromXlsx(
         result.errors.push(`[Meetings row ${i + 2}] invalid date`);
         continue;
       }
+      const code = norm(r['code']) || null;
       const location = norm(r['location']) || null;
       const summary = norm(r['summary']) || null;
       const countryId = await getCountryIdByRef(r['country']);
@@ -1861,6 +1862,7 @@ export async function importLookupsFromXlsx(
         date,
         location,
         summary,
+        code,
         countryId: countryId ?? null,
         organizationId: organizationId ?? null,
         meetingImagePaths: jsonFromCell(r['meetingimagepaths']),
@@ -1869,6 +1871,7 @@ export async function importLookupsFromXlsx(
       const existing = await prisma.meeting.findFirst({
         where: {
           date,
+          ...(code ? { code } : {}),
           ...(location ? { location } : {}),
           ...(summary ? { summary } : {}),
         },
@@ -1890,23 +1893,18 @@ export async function importLookupsFromXlsx(
   if (load.MeetingTopics) {
     for (let i = 0; i < meetingTopicsRows.length; i++) {
       const r = meetingTopicsRows[i];
-      //const date = asDateOrNull(r['date']);
-      const topicMeeting = norm(r['meeting']) || null;
-      const name = norm(r['name']);
-      if (!!name) {
-        result.errors.push(`[MeetingTopics row ${i + 2}] missing name`);
-        continue;
-      }
+
+      const meetingCode = norm(r['meetingCode']) || null;
 
       const meeting = await prisma.meeting.findFirst({
-        where: { summary: topicMeeting },
+        where: { code: meetingCode },
         select: { id: true },
       });
       if (!meeting) {
         result.errors.push(`[MeetingTopics row ${i + 2}] meeting not found`);
         continue;
       }
-
+      const name = norm(r['name']);
       const description = norm(r['description']) || null;
 
       const existing = await prisma.meetingTopic.findFirst({
@@ -1930,63 +1928,15 @@ export async function importLookupsFromXlsx(
       }
     }
   }
-  // if (load.MeetingTopics) {
-  //   for (let i = 0; i < meetingTopicsRows.length; i++) {
-  //     const r = meetingTopicsRows[i];
-  //     const date = asDateOrNull(r['date']);
-  //     const location = norm(r['location']) || null;
-  //     const name = norm(r['name']);
-  //     if (!date || !name) {
-  //       result.errors.push(`[MeetingTopics row ${i + 2}] missing date/name`);
-  //       continue;
-  //     }
-
-  //     const meeting = await prisma.meeting.findFirst({
-  //       where: { date, ...(location ? { location } : {}) },
-  //       select: { id: true },
-  //     });
-  //     if (!meeting) {
-  //       result.errors.push(`[MeetingTopics row ${i + 2}] meeting not found`);
-  //       continue;
-  //     }
-
-  //     const description = norm(r['description']) || null;
-
-  //     const existing = await prisma.meetingTopic.findFirst({
-  //       where: { meetingId: meeting.id, name },
-  //       select: { id: true },
-  //     });
-
-  //     if (existing) {
-  //       if (!dryRun)
-  //         await prisma.meetingTopic.update({
-  //           where: { id: existing.id },
-  //           data: { description },
-  //         });
-  //       result.updated.MeetingTopics++;
-  //     } else {
-  //       if (!dryRun)
-  //         await prisma.meetingTopic.create({
-  //           data: { meetingId: meeting.id, name, description },
-  //         });
-  //       result.created.MeetingTopics++;
-  //     }
-  //   }
-  // }
 
   /* --------------------------- MeetingParticipants ------------------------ */
   if (load.MeetingParticipants) {
     for (let i = 0; i < meetingParticipantsRows.length; i++) {
       const r = meetingParticipantsRows[i];
-      const date = asDateOrNull(r['date']);
-      const location = norm(r['location']) || null;
-      if (!date) {
-        result.errors.push(`[MeetingParticipants row ${i + 2}] invalid date`);
-        continue;
-      }
+      const meetingCode = norm(r['meetingCode']) || null;
 
       const meeting = await prisma.meeting.findFirst({
-        where: { date, ...(location ? { location } : {}) },
+        where: { code: meetingCode },
         select: { id: true },
       });
       if (!meeting) {
@@ -1997,12 +1947,8 @@ export async function importLookupsFromXlsx(
       }
 
       const person = norm(r['person']);
-      const firstName = norm(r['firstname']);
-      const lastName = norm(r['lastname']);
-      if (!firstName || !lastName) {
-        result.errors.push(
-          `[MeetingParticipants row ${i + 2}] missing person name`
-        );
+      if (!person) {
+        result.errors.push(`[MeetingParticipants row ${i + 2}] missing person`);
         continue;
       }
 
