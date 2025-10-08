@@ -117,3 +117,138 @@ export async function deleteBranch(id: string) {
 εξαρτώμενο και το Unit με βάση Country/Branch; να περάσω όλα τα πραγματικά ελληνικά/τουρκικά rank trees;
  ή να προσθέσω Companies/Offices με dropdown για manufacturer στα Equipment; Πες μου and I’ll bake it in στο ίδιο αρχείο
 ```
+
+```terminal
+Βήμα-βήμα (στα ελληνικά)
+1) Μετατροπή περιοχών σε Πίνακες & ονομασία
+
+Γράψε τα headers σου (π.χ. στο Countries: name, iso2, region).
+
+Κλίκαρε μέσα στα δεδομένα → Εισαγωγή → Πίνακας (ή Κεντρική → Μορφοποίηση ως Πίνακα).
+Τσέκαρε το «Ο πίνακάς μου έχει κεφαλίδες».
+
+Με τον πίνακα επιλεγμένο, άνοιξε την καρτέλα Σχεδίαση Πίνακα και άλλαξε το Όνομα πίνακα (π.χ. tblCountries, tblBranches, tblMeetings, κ.λπ.).
+
+Οι Πίνακες «μεγαλώνουν» αυτόματα — άρα οι λίστες θα πιάνουν αμέσως νέες γραμμές.
+
+2) Υποχρεωτικά πεδία με κόκκινο
+
+Βάψε κόκκινο fill στα header των υποχρεωτικών στηλών.
+
+Προαιρετικά, κάνε και κανόνα: Κεντρική → Μορφοποίηση υπό όρους → Δημιουργία νέου κανόνα → Μόνο κελιά που περιέχουν → Κενά και επίλεξε κόκκινο γέμισμα.
+
+3) Φτιάξε δυναμικές «λίστες» (Named Formulas)
+
+Πήγαινε Τύποι → Διαχείριση Ονομάτων → Νέο…
+
+Δώσε Όνομα (π.χ. CountryList) και στο Αναφέρεται σε: βάλε τύπο. Παραδείγματα:
+
+CountryList
+=SORT(UNIQUE(FILTER(tblCountries[name], tblCountries[name]<>"")))
+
+OrganizationList
+=SORT(UNIQUE(FILTER(tblOrganizations[name], tblOrganizations[name]<>"")))
+
+MeetingCodes (για MeetingTopics/MeetingParticipants)
+=SORT(UNIQUE(FILTER(tblMeetings[code], tblMeetings[code]<>"")))
+
+BranchesForCountry (εξαρτώμενη λίστα — LAMBDA)
+
+=LAMBDA(country,
+   LET(rng,FILTER(tblBranches[name], tblBranches[country]=country),
+       SORT(UNIQUE(FILTER(rng, rng<>"")))
+   )
+)
+
+
+RanksForBranch
+
+=LAMBDA(branch,
+   LET(rng,FILTER(tblRanks[name], tblRanks[branch]=branch),
+       SORT(UNIQUE(FILTER(rng, rng<>"")))
+   )
+)
+
+
+UnitsForCountryBranch
+
+=LAMBDA(country, branch,
+   LET(rng,FILTER(tblUnits[name],
+          (tblUnits[country]=country)*(tblUnits[branch]=branch)),
+       SORT(UNIQUE(FILTER(rng, rng<>"")))
+   )
+)
+
+
+PeopleList (βάλε βοηθητική στήλη fullName στον πίνακα Personnel με τύπο =[@firstname] & " " & [@lastname])
+=SORT(UNIQUE(FILTER(tblPersonnel[fullName], tblPersonnel[fullName]<>"")))
+
+Αν δεν δέχεται LAMBDA, είσαι σε παλαιότερο Excel. Στο τέλος θα βρεις fallback.
+
+4) Κάνε τα dropdowns (Έλεγχος δεδομένων)
+
+Επίλεξε τη στήλη προορισμού → Δεδομένα → Έλεγχος δεδομένων → Ρυθμίσεις
+
+Να επιτρέπονται: Λίστα
+
+Πηγή: βάλε το όνομα της λίστας π.χ. =CountryList
+
+Παραδείγματα ανά tab
+
+Meetings
+
+country → =CountryList
+
+organization → =OrganizationList
+
+code → κάνε το υποχρεωτικό (και προαιρετικά unique με Custom: =COUNTIF(tblMeetings[code],[@code])=1)
+
+MeetingTopics
+
+meetingCode → =MeetingCodes
+
+name → υποχρεωτικό (μορφοποίηση υπό όρους)
+
+MeetingParticipants
+
+meetingCode → =MeetingCodes
+
+person (ενιαίο fullname) → =PeopleList
+(ή ξεχωριστά firstname/lastname χωρίς dropdown)
+
+Personnel
+
+country → =CountryList
+
+branch (εξαρτώμενο από country της ίδιας γραμμής) → =BranchesForCountry([@country])
+
+rank (εξαρτώμενο από branch) → =RanksForBranch([@branch])
+
+PersonPostings
+
+person → =PeopleList
+
+country → =CountryList
+
+unit (εξαρτώμενο) → =UnitsForCountryBranch([@country], [@branch])
+
+position → φτιάξε PositionList =SORT(UNIQUE(FILTER(tblPositions[name], tblPositions[name]<>""))) και βάλε =PositionList
+
+Promotions
+
+person → =PeopleList
+
+rank → =RanksForBranch([@branch]) (αν κρατάς και branch)
+
+5) Αυτόματη ενημέρωση dropdowns
+
+Δεν κάνεις τίποτα άλλο: επειδή οι λίστες βασίζονται σε Table columns με FILTER/UNIQUE, κάθε νέα γραμμή στους πίνακες (π.χ. νέο code στο Meetings, νέος person στο Personnel) εμφανίζεται αυτόματα στα dropdowns.
+
+Fallback αν δεν έχεις LAMBDA/FILTER/UNIQUE
+
+Φτιάξε ένα βοηθητικό φύλλο π.χ. _Lists με συγκεντρωτικές λίστες (π.χ. copy από τους πίνακες ή με Power Query).
+
+Φτιάξε Ονομασμένα εύρη με δυναμικό ύψος (π.χ. =OFFSET(_Lists!$A$2;0;0;COUNTA(_Lists!$A:$A)-1;1)).
+
+Για εξαρτώμενα dropdowns χρησιμοποίησε INDIRECT + ονόματα ανά “κλειδί” (π.χ. TR_Branches), ή πρόσθετους βοηθητικούς πίνακες/φόρμουλες στο _Lists.
+```

@@ -1890,16 +1890,16 @@ export async function importLookupsFromXlsx(
   if (load.MeetingTopics) {
     for (let i = 0; i < meetingTopicsRows.length; i++) {
       const r = meetingTopicsRows[i];
-      const date = asDateOrNull(r['date']);
-      const location = norm(r['location']) || null;
+      //const date = asDateOrNull(r['date']);
+      const topicMeeting = norm(r['meeting']) || null;
       const name = norm(r['name']);
-      if (!date || !name) {
-        result.errors.push(`[MeetingTopics row ${i + 2}] missing date/name`);
+      if (!!name) {
+        result.errors.push(`[MeetingTopics row ${i + 2}] missing name`);
         continue;
       }
 
       const meeting = await prisma.meeting.findFirst({
-        where: { date, ...(location ? { location } : {}) },
+        where: { summary: topicMeeting },
         select: { id: true },
       });
       if (!meeting) {
@@ -1930,6 +1930,49 @@ export async function importLookupsFromXlsx(
       }
     }
   }
+  // if (load.MeetingTopics) {
+  //   for (let i = 0; i < meetingTopicsRows.length; i++) {
+  //     const r = meetingTopicsRows[i];
+  //     const date = asDateOrNull(r['date']);
+  //     const location = norm(r['location']) || null;
+  //     const name = norm(r['name']);
+  //     if (!date || !name) {
+  //       result.errors.push(`[MeetingTopics row ${i + 2}] missing date/name`);
+  //       continue;
+  //     }
+
+  //     const meeting = await prisma.meeting.findFirst({
+  //       where: { date, ...(location ? { location } : {}) },
+  //       select: { id: true },
+  //     });
+  //     if (!meeting) {
+  //       result.errors.push(`[MeetingTopics row ${i + 2}] meeting not found`);
+  //       continue;
+  //     }
+
+  //     const description = norm(r['description']) || null;
+
+  //     const existing = await prisma.meetingTopic.findFirst({
+  //       where: { meetingId: meeting.id, name },
+  //       select: { id: true },
+  //     });
+
+  //     if (existing) {
+  //       if (!dryRun)
+  //         await prisma.meetingTopic.update({
+  //           where: { id: existing.id },
+  //           data: { description },
+  //         });
+  //       result.updated.MeetingTopics++;
+  //     } else {
+  //       if (!dryRun)
+  //         await prisma.meetingTopic.create({
+  //           data: { meetingId: meeting.id, name, description },
+  //         });
+  //       result.created.MeetingTopics++;
+  //     }
+  //   }
+  // }
 
   /* --------------------------- MeetingParticipants ------------------------ */
   if (load.MeetingParticipants) {
