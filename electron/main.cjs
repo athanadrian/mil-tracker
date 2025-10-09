@@ -11,7 +11,6 @@ const {
 } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs'); // ✅ Promises API σε CJS
-const promiseFs = require('node:fs/promises'); // ✅ Promises API σε CJS
 const { lookup: mimeLookup } = require('mime-types');
 const net = require('node:net');
 const { fork, spawn } = require('node:child_process');
@@ -32,6 +31,7 @@ const PROD_DB = () => path.join(EXE_DIR(), 'data', 'mil.db'); // δίπλα στ
 
 let win = null;
 let nextChild = null;
+let memoryMonitorId = null;
 
 /* ===== Minimal logger (always-on) ===== */
 function getLogPath() {
@@ -141,6 +141,30 @@ function copyDirSync(src, dest) {
   }
 }
 
+function startMemoryMonitor(intervalMs = 10000) {
+  const id = setInterval(() => {
+    try {
+      const m = process.memoryUsage();
+      log(
+        'MEM',
+        `rss=${Math.round(m.rss / 1024 / 1024)}MB`,
+        `heapUsed=${Math.round(m.heapUsed / 1024 / 1024)}MB`,
+        `heapTotal=${Math.round(m.heapTotal / 1024 / 1024)}MB`,
+        `external=${Math.round(m.external / 1024 / 1024)}MB`
+      );
+    } catch (e) {}
+  }, intervalMs);
+  return id;
+}
+process.on('uncaughtException', (err) =>
+  log('uncaughtException', err?.stack || err)
+);
+process.on('unhandledRejection', (r) => log('unhandledRejection', String(r)));
+// πρόσθεσε επίσης warnings για πιθανές memory leaks
+process.on('warning', (w) =>
+  log('processWarning', w?.name, w?.message, w?.stack)
+);
+
 /* ===== Next server (prod) ===== */
 async function bootNextInProd() {
   const appRoot = APP_ROOT(); // resources/app
@@ -185,12 +209,24 @@ async function bootNextInProd() {
     DATABASE_URL: `file:${PROD_DB()}`,
   };
 
+  // keep stdio pipes temporarily so we can capture server logs
   nextChild = fork(serverJs, [], {
     env,
-    cwd: path.dirname(serverJs), // standalone working dir
-    stdio: 'ignore', // πιο «ήσυχο»/γρήγορο boot
+    cwd: path.dirname(serverJs),
+    stdio: ['ignore', 'pipe', 'pipe'],
     detached: false,
   });
+  log('Next child started', 'pid=' + nextChild.pid);
+  if (nextChild.stdout) {
+    nextChild.stdout.on('data', (chunk) =>
+      log('Next child stdout:', String(chunk).trim())
+    );
+  }
+  if (nextChild.stderr) {
+    nextChild.stderr.on('data', (chunk) =>
+      log('Next child stderr:', String(chunk).trim())
+    );
+  }
   nextChild.on('error', (e) => log('Next child error:', e?.message || e));
   nextChild.on('exit', (code, sig) =>
     log('Next child exit:', String(code), String(sig))
@@ -261,7 +297,11 @@ async function createWindow() {
   const url = `http://localhost:${PORT}${startPath}`;
 
   win.once('ready-to-show', () => win.show());
-  win.on('closed', () => {});
+  win.on('closed', () => {
+    try {
+      win = null;
+    } catch {}
+  });
   win.webContents.on('did-fail-load', (_e, code, desc, failedUrl) =>
     log('did-fail-load', String(code), desc, failedUrl)
   );
@@ -333,10 +373,17 @@ app.whenReady().then(async () => {
         console.log('[local] REQUEST:', request.url);
         console.log('[local] MAPPED :', fullPath);
 
-        const data = await promiseFs.readFile(fullPath); // ✅ promises.readFile
-        const type = mimeLookup(fullPath) || 'application/octet-stream';
+        // const data = await promiseFs.readFile(fullPath); // ✅ promises.readFile
+        // const type = mimeLookup(fullPath) || 'application/octet-stream';
 
-        return new Response(data, { headers: { 'Content-Type': type } });
+        // return new Response(data, { headers: { 'Content-Type': type } });
+        // // stream the file instead of buffering whole file
+        const stream = fs.createReadStream(fullPath);
+        const type = mimeLookup(fullPath) || 'application/octet-stream';
+        stream.on('error', (err) => {
+          console.error('[local] STREAM ERROR:', err?.message || err);
+        });
+        return new Response(stream, { headers: { 'Content-Type': type } });
       } catch (err) {
         const code = String(err?.code || '');
         let status = 500;
@@ -365,8 +412,24 @@ app.whenReady().then(async () => {
     app.quit();
   }
 });
+
+memoryMonitorId = startMemoryMonitor();
+
 app.on('before-quit', () => {
+  try {
+    if (memoryMonitorId) clearInterval(memoryMonitorId);
+  } catch {}
+  // cleanup ipc listeners registered dynamically (if any)
+  try {
+    ipcMain.removeAllListeners();
+  } catch {}
   killNextChildSync();
+});
+app.on('will-quit', () => {
+  // final cleanup (synchronous)
+  try {
+    if (memoryMonitorId) clearInterval(memoryMonitorId);
+  } catch {}
 });
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
@@ -374,3 +437,10 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) createWindow();
 });
+
+app.on('gpu-process-crashed', (event, killed) =>
+  log('gpu-process-crashed', 'killed=' + Boolean(killed))
+);
+app.on('child-process-gone', (event, details) =>
+  log('child-process-gone', details?.type, details?.reason || details)
+);

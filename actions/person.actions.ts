@@ -1,6 +1,7 @@
 'use server';
 
 import { prisma } from '@/lib/db';
+import { toStringArray } from '@/lib/utils';
 import { GetPersonnelArgs } from '@/types/person';
 import type {
   Prisma,
@@ -110,6 +111,7 @@ export type PersonDetailDTO = {
 
   email?: string | null;
   phone?: string | null;
+  description?: string | null;
 
   /** JSON από τη βάση (avatar, gallery κ.λπ.) */
   personImagePaths: Prisma.JsonValue | null;
@@ -633,5 +635,10 @@ export const getPersonDetailById = async (
     promotions,
   };
 
-  return detail;
+  return detail
+    ? {
+        ...detail,
+        personImagePaths: toStringArray(detail.personImagePaths),
+      }
+    : null;
 };

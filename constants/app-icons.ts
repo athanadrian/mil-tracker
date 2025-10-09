@@ -70,6 +70,7 @@ import {
   TbDatabaseImport,
 } from 'react-icons/tb';
 import { VscTypeHierarchySub, VscTable } from 'react-icons/vsc';
+import { TfiSave } from 'react-icons/tfi';
 import { LogoIcon } from './custom-icons';
 
 export const appIcons = {
@@ -127,6 +128,7 @@ export const appIcons = {
   add: IoAdd,
   edit: CiEdit,
   view: GoEye,
+  save: TfiSave,
   delete: PiTrashThin,
   close: AiOutlineClose,
   reset: MdLockReset,

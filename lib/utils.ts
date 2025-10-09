@@ -1,6 +1,7 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import type { ReadonlyURLSearchParams } from 'next/navigation';
+import type { Prisma } from '@prisma/client';
 
 import { ServiceStatus, PersonType } from '@prisma/client';
 import { getEntityName, type EntityKey } from '@/actions/common.actions';
@@ -258,3 +259,35 @@ export const toIdArray = (v?: string | string[] | null) =>
 
 export const cap = (n: number | undefined, max = 1000) =>
   Math.min(Math.max(n ?? 50, 0), max);
+
+export function toStringArray(json: unknown): string[] {
+  if (json == null) return [];
+
+  // array => stringify τα items
+  if (Array.isArray(json)) return json.map((x) => String(x)).filter(Boolean);
+
+  // string => είτε JSON.parse αν είναι '[...]', είτε ένα απλό path
+  if (typeof json === 'string') {
+    const s = json.trim();
+    if (!s) return [];
+    try {
+      const parsed = JSON.parse(s);
+      if (Array.isArray(parsed))
+        return parsed.map((x) => String(x)).filter(Boolean);
+      return [s];
+    } catch {
+      return [s];
+    }
+  }
+
+  // αντικείμενο με { paths: [...] }
+  if (
+    typeof json === 'object' &&
+    'paths' in (json as any) &&
+    Array.isArray((json as any).paths)
+  ) {
+    return (json as any).paths.map((x: any) => String(x)).filter(Boolean);
+  }
+
+  return [];
+}
