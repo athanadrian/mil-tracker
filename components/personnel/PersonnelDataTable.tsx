@@ -4,6 +4,7 @@ import * as React from 'react';
 import { AppDataTable } from '@/components/app-ui';
 import type { PersonDTO } from '@/actions/person.actions';
 import { makePersonnelColumns } from './personnel-columns';
+import { useRouter } from 'next/navigation';
 
 type PersonnelDataTableProps = {
   rows: PersonDTO[];
@@ -31,8 +32,9 @@ const PersonnelDataTable = ({
   pageSizeOptions = [10, 25, 50, 100],
 }: PersonnelDataTableProps) => {
   // columns πρέπει να είναι stable reference
+  const router = useRouter();
   const columns = React.useMemo(
-    () => makePersonnelColumns({ onView, onEdit }),
+    () => makePersonnelColumns({ onView, onEdit, router }),
     [onView, onEdit]
   );
 

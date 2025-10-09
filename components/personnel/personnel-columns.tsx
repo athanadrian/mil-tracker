@@ -90,9 +90,9 @@ function formatPromotionRow(pr: PersonDTO['promotions'][number]): string {
 export function makePersonnelColumns(opts?: {
   onView?: (p: PersonDTO) => void;
   onEdit?: (p: PersonDTO) => void;
+  router?: any;
 }): ColumnDef<PersonDTO, any>[] {
-  const { onView, onEdit } = opts || {};
-
+  const { onView, onEdit, router } = opts || {};
   const columns: ColumnDef<PersonDTO, any>[] = [
     // Index (βασίζεται στο table.meta.baseIndex)
     {
@@ -306,8 +306,9 @@ export function makePersonnelColumns(opts?: {
             showView
             showEdit
             showDelete
-            onView={() => onView?.(p)}
-            onEdit={() => onEdit?.(p)}
+            onView={() => router.push(`/personnel/${p.id}`)}
+            //onView?.(p)}
+            onEdit={() => router.push(`/personnel/create?edit=${p.id}`)}
             onDelete={() => {
               /* άνοιξε dialog διαγραφής αν έχεις */
             }}

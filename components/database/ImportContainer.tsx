@@ -159,6 +159,12 @@ const ImportContainer = () => {
     if (fileRef.current) fileRef.current.value = '';
   };
 
+  const summarize = (r: ImportResult) => ({
+    created: Object.entries(r.created).filter(([, v]) => v > 0),
+    updated: Object.entries(r.updated).filter(([, v]) => v > 0),
+    errorsCount: r.errors?.length ?? 0,
+  });
+
   return (
     <Card>
       <CardHeader className='pb-2'>
@@ -315,7 +321,7 @@ const ImportContainer = () => {
             </div>
           </div>
         </div>
-
+        {/* {log && <pre className="text-xs">{JSON.stringify(summarize(log), null, 2)}</pre>} */}
         {/* Results */}
         {log && (
           <div className='rounded-md border bg-muted/30 p-3 text-sm'>
@@ -323,16 +329,19 @@ const ImportContainer = () => {
             <div className='grid grid-cols-1 md:grid-cols-2 gap-3'>
               <div className='rounded-md border p-2 bg-background/60'>
                 <div className='font-medium mb-1'>Created</div>
-                <pre className='text-xs overflow-auto max-h-64'>
+                {/* <pre className='text-xs overflow-auto max-h-64'>
                   {JSON.stringify(log.created, null, 2)}
+                </pre> */}
+                <pre className='text-xs'>
+                  {JSON.stringify(summarize(log), null, 2)}
                 </pre>
               </div>
-              <div className='rounded-md border p-2 bg-background/60'>
+              {/* <div className='rounded-md border p-2 bg-background/60'>
                 <div className='font-medium mb-1'>Updated</div>
                 <pre className='text-xs overflow-auto max-h-64'>
                   {JSON.stringify(log.updated, null, 2)}
                 </pre>
-              </div>
+              </div> */}
             </div>
 
             {log.errors?.length ? (

@@ -39,7 +39,7 @@ const PersonnelPage = async ({ searchParams }: PersonnelPageProps) => {
         title='Προσωπικό'
         subtitle='Διαχείριση στοιχείων προσωπικού'
         actionLabel='Νέο Στέλεχος'
-        actionHref='/personnel/new'
+        actionHref='/personnel/create'
         actionIconKey='add'
       />
       <div className='mt-4'>

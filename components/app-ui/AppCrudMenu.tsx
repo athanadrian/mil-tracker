@@ -80,7 +80,7 @@ const AppCrudMenu = ({
   portalContainer,
 
   showView = true,
-  viewLabel = 'Περοβολή',
+  viewLabel = 'Προβολή',
   viewIcon = appIcons.view,
   onView,
   viewDisabled,

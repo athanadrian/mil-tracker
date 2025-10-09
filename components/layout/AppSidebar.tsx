@@ -136,6 +136,7 @@ const AdminSidebar = () => {
                   badge={
                     hasCountKey(link) ? counts[link.countKey] ?? 0 : undefined
                   }
+                  prefetch={false}
                   accessibility={link.accessibility}
                 />
               ))}

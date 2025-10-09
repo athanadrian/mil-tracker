@@ -1,5 +1,5 @@
 import { AppPageBreadcrumbs, AppPageTitle } from '@/components/app-ui';
-import { ExportContainer, ImportLookupsCard } from '@/components/database';
+import { ExportContainer } from '@/components/database';
 import React from 'react';
 
 const ExportDatabasePage = () => {
@@ -20,7 +20,7 @@ const ExportDatabasePage = () => {
         // actionIconKey='add'
       />
       <div className='mt-4'>
-        <ExportContainer />{' '}
+        <ExportContainer />
       </div>
     </div>
   );

@@ -25,6 +25,7 @@ export interface CollapsibleMenuItemProps {
   label: string;
   accessibility?: string;
   badge?: number | null;
+  prefetch?: boolean;
 }
 
 const CollapsibleMenuItem: React.FC<CollapsibleMenuItemProps> = ({
@@ -32,6 +33,7 @@ const CollapsibleMenuItem: React.FC<CollapsibleMenuItemProps> = ({
   icon,
   label,
   accessibility,
+  prefetch = true,
   badge = 0,
 }) => {
   const { state } = useSidebar();
@@ -57,6 +59,7 @@ const CollapsibleMenuItem: React.FC<CollapsibleMenuItemProps> = ({
         href={href}
         className='flex items-center gap-2'
         aria-label={accessibility}
+        prefetch={prefetch}
       >
         {IconWithBadge}
         <span className='truncate'>{label}</span>

@@ -45,7 +45,7 @@ const Flag: React.FC<Props> = ({
 }) => {
   const src = React.useMemo(() => deriveSrc(flag), [flag]);
 
-  console.log('[Flag] flag =', flag, '→ src =', src);
+  //  console.log('[Flag] flag =', flag, '→ src =', src);
 
   if (!src) {
     return (
