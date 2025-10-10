@@ -97,6 +97,7 @@ export type PromotionDetailDTO = {
     tier: string;
     level?: number | null;
   };
+  description: string | null;
 };
 
 export type PersonDetailDTO = {
@@ -108,7 +109,7 @@ export type PersonDetailDTO = {
   type: PersonType;
   status: ServiceStatus;
   retiredYear: number | null;
-
+  classYear: string | null;
   email?: string | null;
   phone?: string | null;
   description?: string | null;
@@ -410,6 +411,7 @@ export const getPersonnelData = async ({
       type: p.type,
       status: p.status,
       retiredYear,
+      classYear: p.classYear,
       personImagePaths: (p.personImagePaths ?? null) as Prisma.JsonValue | null,
       country: p.country
         ? { id: p.country.id, name: p.country.name, flag: p.country.flag }
@@ -493,6 +495,7 @@ export const getPersonDetailById = async (
         select: {
           id: true,
           promotionYear: true,
+          description: true,
           rank: {
             select: {
               id: true,
@@ -575,6 +578,7 @@ export const getPersonDetailById = async (
     .map((pr) => ({
       id: pr.id,
       promotionYear: pr.promotionYear,
+      description: pr.description,
       rank: {
         id: pr.rank.id,
         name: pr.rank.name,
@@ -595,6 +599,7 @@ export const getPersonDetailById = async (
     type: p.type,
     status: p.status,
     retiredYear,
+    classYear: p.classYear,
     email: (p as any).email ?? null,
     phone: (p as any).phone ?? null,
     personImagePaths: (p.personImagePaths ?? null) as Prisma.JsonValue | null,

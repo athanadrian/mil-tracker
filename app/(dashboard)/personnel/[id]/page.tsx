@@ -1,6 +1,13 @@
 import { getPersonDetailById } from '@/actions/person.actions';
-import { AppPageBreadcrumbs, AppPageTitle } from '@/components/app-ui';
+import {
+  AppCrudMenu,
+  AppIcon,
+  AppPageBreadcrumbs,
+  AppPageTitle,
+} from '@/components/app-ui';
 import { PersonContainer } from '@/components/personnel';
+import { Button } from '@/components/ui/button';
+import { appIcons } from '@/constants/app-icons';
 import React from 'react';
 type Props = { params: { id: string } };
 
@@ -21,14 +28,7 @@ const PersonPage = async ({ params }: Props) => {
         segmentLabels={{ personnel: 'Προσωπικό', [id]: name }}
       />
 
-      <AppPageTitle
-        title={name}
-        subtitle={`Προβολή στοιχείων ${name}`}
-        actionLabel='Επεξεργασία'
-        actionHref={`/personnel/create?edit=${id}`}
-        actionIconKey='edit'
-      />
-      <PersonContainer person={personDetails!} />
+      <PersonContainer person={personDetails!} name={name} />
     </div>
   );
 };

@@ -1,7 +1,13 @@
 'use server';
 
 import 'server-only';
-import * as XLSX from 'xlsx';
+//import * as XLSX from 'xlsx';
+//const XLSX = (await import('xlsx')).default ?? (await import('xlsx'));
+
+import type * as XLSXTypes from 'xlsx';
+type WorkBook = XLSXTypes.WorkBook;
+type WorkSheet = XLSXTypes.WorkSheet;
+
 import { prisma } from '@/lib/db';
 import {
   revalidateLookups,
@@ -238,42 +244,31 @@ function extractName(r: any) {
   return { firstName, lastName, hadAnyName: !!(firstName || lastName || full) };
 }
 
-// function parseRankRef(ref?: string) {
-//   const raw = norm(ref);
-//   if (!raw)
-//     return {
-//       rankCode: null as string | null,
-//       branchCode: null as string | null,
-//       raw: null as string | null,
-//     };
-//   const parts = raw
-//     .split('-')
-//     .map((s) => s.trim())
-//     .filter(Boolean);
-//   if (parts.length >= 2) {
-//     const rankCode = parts.pop()!; // τελευταίο = rank code (π.χ. YZB / 1LT)
-//     const branchCode = parts.join('-') || null; // ό,τι μένει = branch code (π.χ. TR-KKK / EF)
-//     return { rankCode, branchCode, raw };
-//   }
-//   return { rankCode: raw, branchCode: null, raw };
-// }
-
 /* ------------- XLSX helpers: case-insensitive sheets, lower headers -------- */
-function getSheet(wb: XLSX.WorkBook, wanted: string) {
+let _XLSX: typeof import('xlsx') | null = null;
+async function getXLSX() {
+  if (!_XLSX) {
+    // σε ESM/TS δεν χρειάζεται .default fallback – το typeof import('xlsx') καλύπτει τα πάντα
+    _XLSX = (await import('xlsx')) as typeof import('xlsx');
+  }
+  return _XLSX;
+}
+
+function getSheet(wb: WorkBook, wanted: string) {
   const lower = wanted.toLowerCase();
   const name = wb.SheetNames.find((n) => n.toLowerCase() === lower);
   return name ? wb.Sheets[name] : undefined;
 }
-function readRows(wb: XLSX.WorkBook, sheetName: string): any[] {
+async function readRows(wb: WorkBook, sheetName: string): Promise<any[]> {
+  const XLSX = await getXLSX();
   const ws = getSheet(wb, sheetName);
   if (!ws) return [];
   const rows = XLSX.utils.sheet_to_json(ws, { defval: '' }) as any[];
-  const out = rows.map((r) => {
+  return rows.map((r) => {
     const o: Record<string, any> = {};
     for (const k of Object.keys(r)) o[k.toLowerCase()] = r[k];
     return o;
   });
-  return out;
 }
 
 /* ------------------------------ Lookups (db) ------------------------------ */
@@ -363,7 +358,6 @@ async function getCompanyIdByName(name?: string) {
   });
   return c?.id;
 }
-
 async function getPersonIdByName(
   fullname?: string,
   firstName?: string,
@@ -400,7 +394,6 @@ async function getPersonIdByName(
 
   return person?.id;
 }
-
 async function getSpecialtyIdByName(name?: string) {
   const v = norm(name);
   if (!v) return undefined;
@@ -485,7 +478,6 @@ export async function preflightXlsx(
   const errors: string[] = [];
   const warnings: string[] = [];
   const info: Record<string, number> = {};
-
   if (!file) return { ok: false, errors: ['No file uploaded'], warnings, info };
 
   const load = {
@@ -529,53 +521,66 @@ export async function preflightXlsx(
   if (!Object.values(load).some(Boolean)) {
     return { ok: true, errors, warnings, info };
   }
+  const XLSX = await getXLSX();
 
   const ab = await file.arrayBuffer();
   const wb = XLSX.read(ab, { type: 'array' });
 
-  const rowsIf = (flag: boolean, name: string) => {
+  const rowsIf = async (flag: boolean, name: string) => {
     if (!flag) {
       info[name] = 0;
       return [] as any[];
     }
-    const r = readRows(wb, name);
+    const r = await readRows(wb, name);
     info[name] = r.length;
     return r;
   };
 
-  const regions = rowsIf(load.Regions, SHEETS.Regions);
-  const countries = rowsIf(load.Countries, SHEETS.Countries);
-  const branches = rowsIf(load.Branches, SHEETS.Branches);
-  const ranks = rowsIf(load.Ranks, SHEETS.Ranks);
-  const orgs = rowsIf(load.Organizations, SHEETS.Organizations);
-  const units = rowsIf(load.Units, SHEETS.Units);
-  const personnel = rowsIf(load.Personnel, SHEETS.Personnel);
-  const promotions = rowsIf(load.Promotions, SHEETS.Promotions);
-  const postings = rowsIf(load.PersonPostings, SHEETS.PersonPostings);
-  const equipment = rowsIf(load.Equipment, SHEETS.Equipment);
-  const eqAssign = rowsIf(
-    load.EquipmentAssignments,
-    SHEETS.EquipmentAssignments
-  );
-  const companies = rowsIf(load.Companies, SHEETS.Companies);
-  const offices = rowsIf(load.CompanyOffices, SHEETS.CompanyOffices);
-  const compOrgs = rowsIf(
-    load.CompanyOrganizations,
-    SHEETS.CompanyOrganizations
-  );
-  const ctryOrgs = rowsIf(
-    load.CountryOrganizations,
-    SHEETS.CountryOrganizations
-  );
-  const personOrgs = rowsIf(
-    load.PersonOrganizations,
-    SHEETS.PersonOrganizations
-  );
-  const specialties = rowsIf(load.Specialties, SHEETS.Specialties);
-  const positions = rowsIf(load.Positions, SHEETS.Positions);
-  const meetings = rowsIf(load.Meetings, SHEETS.Meetings);
-  const mt = rowsIf(load.MeetingTopics, SHEETS.MeetingTopics);
-  const mp = rowsIf(load.MeetingParticipants, SHEETS.MeetingParticipants);
+  const [
+    regions,
+    countries,
+    branches,
+    ranks,
+    orgs,
+    units,
+    personnel,
+    promotions,
+    postings,
+    equipment,
+    eqAssign,
+    companies,
+    offices,
+    compOrgs,
+    ctryOrgs,
+    personOrgs,
+    specialties,
+    positions,
+    meetings,
+    mt,
+    mp,
+  ] = await Promise.all([
+    rowsIf(load.Regions, SHEETS.Regions),
+    rowsIf(load.Countries, SHEETS.Countries),
+    rowsIf(load.Branches, SHEETS.Branches),
+    rowsIf(load.Ranks, SHEETS.Ranks),
+    rowsIf(load.Organizations, SHEETS.Organizations),
+    rowsIf(load.Units, SHEETS.Units),
+    rowsIf(load.Personnel, SHEETS.Personnel),
+    rowsIf(load.Promotions, SHEETS.Promotions),
+    rowsIf(load.PersonPostings, SHEETS.PersonPostings),
+    rowsIf(load.Equipment, SHEETS.Equipment),
+    rowsIf(load.EquipmentAssignments, SHEETS.EquipmentAssignments),
+    rowsIf(load.Companies, SHEETS.Companies),
+    rowsIf(load.CompanyOffices, SHEETS.CompanyOffices),
+    rowsIf(load.CompanyOrganizations, SHEETS.CompanyOrganizations),
+    rowsIf(load.CountryOrganizations, SHEETS.CountryOrganizations),
+    rowsIf(load.PersonOrganizations, SHEETS.PersonOrganizations),
+    rowsIf(load.Specialties, SHEETS.Specialties),
+    rowsIf(load.Positions, SHEETS.Positions),
+    rowsIf(load.Meetings, SHEETS.Meetings),
+    rowsIf(load.MeetingTopics, SHEETS.MeetingTopics),
+    rowsIf(load.MeetingParticipants, SHEETS.MeetingParticipants),
+  ]);
 
   // --- existing validations (ενδεικτικά) ---
   ranks.forEach((r, i) => {
@@ -656,13 +661,7 @@ export async function preflightXlsx(
 
   // ---------- UPDATED: MeetingParticipants supports fullname ----------
   mp.forEach((r, i) => {
-    // const dateOk = !!asDateOrNull(r['date']);
-    // if (!dateOk) {
-    //   errors.push(`[MeetingParticipants row ${i + 2}] invalid date`);
-    //   return;
-    // }
     const hasFull = !!norm(r['person']) || !!norm(r['fullname']);
-    //const hasParts = !!norm(r['firstname']) && !!norm(r['lastname']);
     if (!hasFull) {
       errors.push(
         `[MeetingParticipants row ${
@@ -731,54 +730,66 @@ export async function importLookupsFromXlsx(
       return result;
     }
   }
-
+  const XLSX = await getXLSX();
   const ab = await file.arrayBuffer();
   const wb = XLSX.read(ab, { type: 'array' });
 
-  const rows = (name: keyof typeof SHEETS, flag: boolean) =>
-    flag ? readRows(wb, SHEETS[name]) : [];
+  const rows = async (name: keyof typeof SHEETS, flag: boolean) =>
+    flag ? await readRows(wb, SHEETS[name]) : ([] as any[]);
 
-  const regionsRows = rows('Regions', load.Regions);
-  const countriesRows = rows('Countries', load.Countries);
-  const branchesRows = rows('Branches', load.Branches);
-  const ranksRows = rows('Ranks', load.Ranks);
-  const orgRows = rows('Organizations', load.Organizations);
-  const unitRows = rows('Units', load.Units);
+  const [
+    regionsRows,
+    countriesRows,
+    branchesRows,
+    ranksRows,
+    orgRows,
+    unitRows,
 
-  const specialtiesRows = rows('Specialties', load.Specialties);
-  const positionsRows = rows('Positions', load.Positions);
-  const personnelRows = rows('Personnel', load.Personnel);
-  const promotionsRows = rows('Promotions', load.Promotions);
-  const postingsRows = rows('PersonPostings', load.PersonPostings);
+    specialtiesRows,
+    positionsRows,
+    personnelRows,
+    promotionsRows,
+    postingsRows,
 
-  const companiesRows = rows('Companies', load.Companies);
-  const companyOfficesRows = rows('CompanyOffices', load.CompanyOffices);
-  const companyOrganizationsRows = rows(
-    'CompanyOrganizations',
-    load.CompanyOrganizations
-  );
-  const countryOrganizationsRows = rows(
-    'CountryOrganizations',
-    load.CountryOrganizations
-  );
-  const personOrganizationsRows = rows(
-    'PersonOrganizations',
-    load.PersonOrganizations
-  );
+    companiesRows,
+    companyOfficesRows,
+    companyOrganizationsRows,
+    countryOrganizationsRows,
+    personOrganizationsRows,
 
-  const equipmentRows = rows('Equipment', load.Equipment);
-  const equipmentAssignmentsRows = rows(
-    'EquipmentAssignments',
-    load.EquipmentAssignments
-  );
+    equipmentRows,
+    equipmentAssignmentsRows,
 
-  const meetingsRows = rows('Meetings', load.Meetings);
-  const meetingTopicsRows = rows('MeetingTopics', load.MeetingTopics);
-  const meetingParticipantsRows = rows(
-    'MeetingParticipants',
-    load.MeetingParticipants
-  );
+    meetingsRows,
+    meetingTopicsRows,
+    meetingParticipantsRows,
+  ] = await Promise.all([
+    rows('Regions', load.Regions),
+    rows('Countries', load.Countries),
+    rows('Branches', load.Branches),
+    rows('Ranks', load.Ranks),
+    rows('Organizations', load.Organizations),
+    rows('Units', load.Units),
 
+    rows('Specialties', load.Specialties),
+    rows('Positions', load.Positions),
+    rows('Personnel', load.Personnel),
+    rows('Promotions', load.Promotions),
+    rows('PersonPostings', load.PersonPostings),
+
+    rows('Companies', load.Companies),
+    rows('CompanyOffices', load.CompanyOffices),
+    rows('CompanyOrganizations', load.CompanyOrganizations),
+    rows('CountryOrganizations', load.CountryOrganizations),
+    rows('PersonOrganizations', load.PersonOrganizations),
+
+    rows('Equipment', load.Equipment),
+    rows('EquipmentAssignments', load.EquipmentAssignments),
+
+    rows('Meetings', load.Meetings),
+    rows('MeetingTopics', load.MeetingTopics),
+    rows('MeetingParticipants', load.MeetingParticipants),
+  ]);
   /* ------------------------------- Regions -------------------------------- */
   if (load.Regions) {
     for (let i = 0; i < regionsRows.length; i++) {
@@ -949,24 +960,41 @@ export async function importLookupsFromXlsx(
         result.errors.push(`[Specialties row ${i + 2}] missing name`);
         continue;
       }
+
+      // resolve branchId από το ref της στήλης "branch" (code ή όνομα)
+      const branchRef = norm(r['branch']);
+      const branchId = branchRef
+        ? (await getBranchIdByRef(branchRef /*, countryId? */)) ?? null
+        : null;
+
       const data = {
         name,
         code: norm(r['code']) || null,
-        specialtyImage: norm(r['specialtyimage']) || null,
         description: norm(r['description']) || null,
+        // Χρησιμοποιούμε το scalar FK που υπάρχει στο schema
+        branchId, // μπορεί να είναι null για καθάρισμα/καμία συσχέτιση
       };
 
+      // Προσοχή στο OR όταν code είναι null -> φτιάξε το δυναμικά
       const existing = await prisma.specialty.findFirst({
-        where: { OR: [{ name }, { code: data.code ?? '' }] },
+        where: {
+          OR: [{ name }, ...(data.code ? [{ code: data.code }] : [])],
+        },
         select: { id: true },
       });
 
       if (existing) {
-        if (!dryRun)
-          await prisma.specialty.update({ where: { id: existing.id }, data });
+        if (!dryRun) {
+          await prisma.specialty.update({
+            where: { id: existing.id },
+            data,
+          });
+        }
         result.updated.Specialties++;
       } else {
-        if (!dryRun) await prisma.specialty.create({ data });
+        if (!dryRun) {
+          await prisma.specialty.create({ data });
+        }
         result.created.Specialties++;
       }
     }
@@ -985,7 +1013,6 @@ export async function importLookupsFromXlsx(
       const data = {
         name,
         code: norm(r['code']) || null,
-        positionImage: norm(r['positionimage']) || null,
         description: norm(r['description']) || null,
       };
 
@@ -1266,6 +1293,8 @@ export async function importLookupsFromXlsx(
     }
   }
 
+  /* -------------------------------- CompanyOffices ----------------------------- */
+
   if (load.CompanyOffices) {
     for (let i = 0; i < companyOfficesRows.length; i++) {
       const r = companyOfficesRows[i];
@@ -1317,6 +1346,8 @@ export async function importLookupsFromXlsx(
     }
   }
 
+  /* -------------------------------- CompanyOrganizations ----------------------------- */
+
   if (load.CompanyOrganizations) {
     for (let i = 0; i < companyOrganizationsRows.length; i++) {
       const r = companyOrganizationsRows[i];
@@ -1357,6 +1388,8 @@ export async function importLookupsFromXlsx(
     }
   }
 
+  /* -------------------------------- CountryOrganizations ----------------------------- */
+
   if (load.CountryOrganizations) {
     for (let i = 0; i < countryOrganizationsRows.length; i++) {
       const r = countryOrganizationsRows[i];
@@ -1381,6 +1414,8 @@ export async function importLookupsFromXlsx(
     }
   }
 
+  /* -------------------------------- PersonOrganizations ----------------------------- */
+
   if (load.PersonOrganizations) {
     for (let i = 0; i < personOrganizationsRows.length; i++) {
       const r = personOrganizationsRows[i];
@@ -1389,21 +1424,33 @@ export async function importLookupsFromXlsx(
         result.errors.push(`[PersonOrganizations row ${i + 2}] missing person`);
         continue;
       }
+
+      // Προσπάθησε regex: "First Last (COUNTRY?)"
+      let firstName = '';
+      let lastName = '';
+      let countryRef: string | undefined;
+
       const m = full.match(/^(.+?)\s+(.+?)(?:\s+\((.+)\))?$/);
-      let personId: string | undefined;
       if (m) {
-        const [fullname, firstName, lastName, countryRef] = m;
-        const cid = countryRef
-          ? await getCountryIdByRef(countryRef)
-          : undefined;
-        personId = await getPersonIdByName(
-          fullname,
-          firstName,
-          lastName,
-          cid,
-          undefined
-        );
+        [, firstName, lastName, countryRef] = m;
+      } else {
+        // Fallback: χώρισε στο πρώτο space
+        const parts = full.replace(/\s+/g, ' ').trim().split(' ');
+        if (parts.length >= 2) {
+          firstName = parts.shift()!;
+          lastName = parts.join(' ');
+        }
       }
+
+      const cid = countryRef ? await getCountryIdByRef(countryRef) : undefined;
+      const personId = await getPersonIdByName(
+        full,
+        firstName,
+        lastName,
+        cid,
+        undefined
+      );
+
       const organizationId = await getOrganizationIdByRef(r['organization']);
       if (!personId || !organizationId) {
         result.errors.push(
@@ -1411,6 +1458,7 @@ export async function importLookupsFromXlsx(
         );
         continue;
       }
+
       const data = {
         personId,
         organizationId,
@@ -1418,16 +1466,23 @@ export async function importLookupsFromXlsx(
         since: asDateOrNull(r['since']),
         until: asDateOrNull(r['until']),
       };
+
+      // Για σωστό counting:
+      const exists = await prisma.personOrganization.findUnique({
+        where: { personId_organizationId: { personId, organizationId } },
+        select: { personId: true },
+      });
+
       if (!dryRun) {
         await prisma.personOrganization.upsert({
-          where: {
-            personId_organizationId: { personId, organizationId },
-          } as any,
+          where: { personId_organizationId: { personId, organizationId } },
           create: data,
           update: { role: data.role, since: data.since, until: data.until },
         });
       }
-      result.updated.PersonOrganizations++;
+
+      if (exists) result.updated.PersonOrganizations++;
+      else result.created.PersonOrganizations++;
     }
   }
 
@@ -1894,7 +1949,7 @@ export async function importLookupsFromXlsx(
     for (let i = 0; i < meetingTopicsRows.length; i++) {
       const r = meetingTopicsRows[i];
 
-      const meetingCode = norm(r['meetingCode']) || null;
+      const meetingCode = norm(r['meetingcode']) || null;
 
       const meeting = await prisma.meeting.findFirst({
         where: { code: meetingCode },
@@ -1933,7 +1988,7 @@ export async function importLookupsFromXlsx(
   if (load.MeetingParticipants) {
     for (let i = 0; i < meetingParticipantsRows.length; i++) {
       const r = meetingParticipantsRows[i];
-      const meetingCode = norm(r['meetingCode']) || null;
+      const meetingCode = norm(r['meetingcode']) || null;
 
       const meeting = await prisma.meeting.findFirst({
         where: { code: meetingCode },
