@@ -146,10 +146,6 @@ const ImportContainer = () => {
     });
   };
 
-  //  console.log('file', e.target.files[0]);
-  //     const image = e.target.files[0];
-  //     console.log('file image', URL.createObjectURL(image));
-
   const onPickFile = (e: any) => {
     console.log('file', e.target.files);
     fileRef.current?.click();

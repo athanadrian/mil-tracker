@@ -6,6 +6,7 @@ import SortableTh from './SortableTh';
 import FiltersContainer from './FiltersContainer';
 import PaginationControls from './PaginationControls';
 import Flag from './Flag';
+import ImageWithFallback from './ImageWithFallback';
 
 export {
   Stat,
@@ -16,4 +17,5 @@ export {
   FiltersContainer,
   PaginationControls,
   Flag,
+  ImageWithFallback,
 };

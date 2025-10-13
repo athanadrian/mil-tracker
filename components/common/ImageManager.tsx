@@ -1,4 +1,3 @@
-// components/ImageManager.tsx
 'use client';
 
 import React from 'react';

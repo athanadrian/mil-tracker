@@ -1,4 +1,3 @@
-// components/app-ui/index.ts
 import AppIcon from './AppIcon';
 import AppPageBreadcrumbs from './AppPageBreadcrumbs';
 import AppPageTitle from './AppPageTitle';

@@ -100,6 +100,19 @@ export type PromotionDetailDTO = {
   description: string | null;
 };
 
+export type MeetingMiniDTO = {
+  id: string;
+  code: string | null;
+  date: string; // ISO
+  location: string | null;
+  summary: string | null;
+  country: { id: string; name: string; flag?: string | null } | null;
+  organization: { id: string; name: string; code?: string | null } | null;
+  topics: { id: string; name: string }[]; // μόνο ονόματα, κράτα το λιτό
+  participantRole: string | null; // ο ρόλος του συγκεκριμένου person
+  participantDescription: string | null; // τυχόν σημειώσεις του participant
+};
+
 export type PersonDetailDTO = {
   id: string;
   firstName: string;
@@ -131,6 +144,7 @@ export type PersonDetailDTO = {
 
   meetingsCount: number;
   hasMeetings: boolean;
+  meetings: MeetingMiniDTO[];
 
   latestInstallation: InstallationDetailDTO | null;
   installations: InstallationDetailDTO[];
@@ -519,7 +533,25 @@ export const getPersonDetailById = async (
         },
         orderBy: [{ startDate: 'desc' }],
       },
-      meetings: { select: { meetingId: true } },
+      meetings: {
+        select: {
+          role: true,
+          description: true,
+          meeting: {
+            select: {
+              id: true,
+              code: true,
+              date: true,
+              location: true,
+              summary: true,
+              country: { select: { id: true, name: true, flag: true } },
+              organization: { select: { id: true, name: true, code: true } },
+              topics: { select: { id: true, name: true } }, // λίστα θεμάτων
+            },
+          },
+        },
+        orderBy: [{ meeting: { date: 'desc' } }],
+      },
     },
   });
 
@@ -589,6 +621,38 @@ export const getPersonDetailById = async (
     }))
     .sort((a, b) => a.promotionYear - b.promotionYear);
 
+  const latestRankFromPromotions = promotions.length
+    ? promotions[promotions.length - 1].rank
+    : null;
+
+  const meetings: MeetingMiniDTO[] = (p.meetings || []).map((mp) => {
+    const m = mp.meeting!;
+    return {
+      id: m.id,
+      code: m.code ?? null,
+      date: m.date.toISOString(),
+      location: m.location ?? null,
+      summary: m.summary ?? null,
+      country: m.country
+        ? {
+            id: m.country.id,
+            name: m.country.name,
+            flag: m.country.flag ?? null,
+          }
+        : null,
+      organization: m.organization
+        ? {
+            id: m.organization.id,
+            name: m.organization.name,
+            code: m.organization.code ?? undefined,
+          }
+        : null,
+      topics: (m.topics || []).map((t) => ({ id: t.id, name: t.name })),
+      participantRole: mp.role ?? null,
+      participantDescription: mp.description ?? null,
+    };
+  });
+
   const latestInstallation = installations[0] ?? null; // because postings ordered desc
 
   const detail: PersonDetailDTO = {
@@ -614,7 +678,14 @@ export const getPersonDetailById = async (
     branch: p.branch
       ? { id: p.branch.id, name: p.branch.name, code: p.branch.code }
       : null,
-    rank: p.rank
+    rank: latestRankFromPromotions
+      ? {
+          id: latestRankFromPromotions.id,
+          name: latestRankFromPromotions.name,
+          code: latestRankFromPromotions.code,
+          tier: (latestRankFromPromotions as any).tier,
+        }
+      : p.rank
       ? {
           id: p.rank.id,
           name: p.rank.name,
@@ -635,6 +706,7 @@ export const getPersonDetailById = async (
     company: p.company ? { id: p.company.id, name: p.company.name } : null,
     meetingsCount: p.meetings.length,
     hasMeetings: p.meetings.length > 0,
+    meetings,
     latestInstallation,
     installations,
     promotions,

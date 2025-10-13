@@ -119,136 +119,61 @@ export async function deleteBranch(id: string) {
 ```
 
 ```terminal
-Βήμα-βήμα (στα ελληνικά)
-1) Μετατροπή περιοχών σε Πίνακες & ονομασία
+βήμα-βήμα για force push στο origin main. Προσοχή: αυτό θα αντικαταστήσει το main στο GitHub με τη δική σου τοπική ιστορία.
 
-Γράψε τα headers σου (π.χ. στο Countries: name, iso2, region).
+0) (Προαιρετικό αλλά έξυπνο) Πάρε ένα γρήγορο backup
+# αποθήκευσε την τρέχουσα HEAD σαν tag/backup
+git tag backup-before-force-$(date +%Y%m%d-%H%M%S)
+# ή/και φτιάξε ένα remote backup branch
+git push origin main:backup/main-$(date +%Y%m%d-%H%M%S)
 
-Κλίκαρε μέσα στα δεδομένα → Εισαγωγή → Πίνακας (ή Κεντρική → Μορφοποίηση ως Πίνακα).
-Τσέκαρε το «Ο πίνακάς μου έχει κεφαλίδες».
+1) Βεβαιώσου ότι είσαι στο σωστό repo/remote/branch
+git remote -v              # πρέπει να βλέπεις το origin -> GitHub URL
+git branch --show-current  # πρέπει να γράφει: main
+# αν δεν είσαι στο main:
+git checkout main
 
-Με τον πίνακα επιλεγμένο, άνοιξε την καρτέλα Σχεδίαση Πίνακα και άλλαξε το Όνομα πίνακα (π.χ. tblCountries, tblBranches, tblMeetings, κ.λπ.).
+2) Κάνε commit ό,τι αλλαγές θες να ανεβάσεις
+git status
+git add -A
+git commit -m "Το μήνυμά σου"
 
-Οι Πίνακες «μεγαλώνουν» αυτόματα — άρα οι λίστες θα πιάνουν αμέσως νέες γραμμές.
+3) (Προαιρετικό) Δες τι υπάρχει απομακρυσμένα
+git fetch origin
+git log --oneline --graph --decorate --all | head -n 20
 
-2) Υποχρεωτικά πεδία με κόκκινο
+4) Κάνε force push στο origin main
 
-Βάψε κόκκινο fill στα header των υποχρεωτικών στηλών.
+Ζήτησες σκέτο --force. Το βάζω. Αν θες λίγο πιο ασφαλές, χρησιμοποίησε --force-with-lease.
 
-Προαιρετικά, κάνε και κανόνα: Κεντρική → Μορφοποίηση υπό όρους → Δημιουργία νέου κανόνα → Μόνο κελιά που περιέχουν → Κενά και επίλεξε κόκκινο γέμισμα.
+# αυτό θα αντικαταστήσει το origin/main με το δικό σου main
+git push origin main --force
+# (εναλλακτικά, πιο ασφαλές)
+# git push origin main --force-with-lease
 
-3) Φτιάξε δυναμικές «λίστες» (Named Formulas)
+5) Έλεγχος
 
-Πήγαινε Τύποι → Διαχείριση Ονομάτων → Νέο…
+Άνοιξε το GitHub και δες το branch main — θα πρέπει να ταιριάζει 1:1 με το δικό σου τοπικό.
 
-Δώσε Όνομα (π.χ. CountryList) και στο Αναφέρεται σε: βάλε τύπο. Παραδείγματα:
+6) Τι πρέπει να κάνει ο άλλος υπολογιστής μετά (ιστορία ξαναγράφηκε)
 
-CountryList
-=SORT(UNIQUE(FILTER(tblCountries[name], tblCountries[name]<>"")))
+Στον άλλο υπολογιστή, για να συγχρονιστεί με το νέο main:
 
-OrganizationList
-=SORT(UNIQUE(FILTER(tblOrganizations[name], tblOrganizations[name]<>"")))
+git fetch origin
+git checkout main
+git reset --hard origin/main   # προσοχή: πετάει τοπικές αλλαγές του main εκεί
 
-MeetingCodes (για MeetingTopics/MeetingParticipants)
-=SORT(UNIQUE(FILTER(tblMeetings[code], tblMeetings[code]<>"")))
+Αν κάτι πάει στραβά — επαναφορά
 
-BranchesForCountry (εξαρτώμενη λίστα — LAMBDA)
+Έχεις το tag/backup:
 
-=LAMBDA(country,
-   LET(rng,FILTER(tblBranches[name], tblBranches[country]=country),
-       SORT(UNIQUE(FILTER(rng, rng<>"")))
-   )
-)
-
-
-RanksForBranch
-
-=LAMBDA(branch,
-   LET(rng,FILTER(tblRanks[name], tblRanks[branch]=branch),
-       SORT(UNIQUE(FILTER(rng, rng<>"")))
-   )
-)
-
-
-UnitsForCountryBranch
-
-=LAMBDA(country, branch,
-   LET(rng,FILTER(tblUnits[name],
-          (tblUnits[country]=country)*(tblUnits[branch]=branch)),
-       SORT(UNIQUE(FILTER(rng, rng<>"")))
-   )
-)
+# τοπική επαναφορά
+git checkout main
+git reset --hard backup-before-force-YYYYMMDD-HHMMSS
+git push origin main --force
 
 
-PeopleList (βάλε βοηθητική στήλη fullName στον πίνακα Personnel με τύπο =[@firstname] & " " & [@lastname])
-=SORT(UNIQUE(FILTER(tblPersonnel[fullName], tblPersonnel[fullName]<>"")))
+ή από το remote backup branch που έφτιαξες στο βήμα 0:
 
-Αν δεν δέχεται LAMBDA, είσαι σε παλαιότερο Excel. Στο τέλος θα βρεις fallback.
-
-4) Κάνε τα dropdowns (Έλεγχος δεδομένων)
-
-Επίλεξε τη στήλη προορισμού → Δεδομένα → Έλεγχος δεδομένων → Ρυθμίσεις
-
-Να επιτρέπονται: Λίστα
-
-Πηγή: βάλε το όνομα της λίστας π.χ. =CountryList
-
-Παραδείγματα ανά tab
-
-Meetings
-
-country → =CountryList
-
-organization → =OrganizationList
-
-code → κάνε το υποχρεωτικό (και προαιρετικά unique με Custom: =COUNTIF(tblMeetings[code],[@code])=1)
-
-MeetingTopics
-
-meetingCode → =MeetingCodes
-
-name → υποχρεωτικό (μορφοποίηση υπό όρους)
-
-MeetingParticipants
-
-meetingCode → =MeetingCodes
-
-person (ενιαίο fullname) → =PeopleList
-(ή ξεχωριστά firstname/lastname χωρίς dropdown)
-
-Personnel
-
-country → =CountryList
-
-branch (εξαρτώμενο από country της ίδιας γραμμής) → =BranchesForCountry([@country])
-
-rank (εξαρτώμενο από branch) → =RanksForBranch([@branch])
-
-PersonPostings
-
-person → =PeopleList
-
-country → =CountryList
-
-unit (εξαρτώμενο) → =UnitsForCountryBranch([@country], [@branch])
-
-position → φτιάξε PositionList =SORT(UNIQUE(FILTER(tblPositions[name], tblPositions[name]<>""))) και βάλε =PositionList
-
-Promotions
-
-person → =PeopleList
-
-rank → =RanksForBranch([@branch]) (αν κρατάς και branch)
-
-5) Αυτόματη ενημέρωση dropdowns
-
-Δεν κάνεις τίποτα άλλο: επειδή οι λίστες βασίζονται σε Table columns με FILTER/UNIQUE, κάθε νέα γραμμή στους πίνακες (π.χ. νέο code στο Meetings, νέος person στο Personnel) εμφανίζεται αυτόματα στα dropdowns.
-
-Fallback αν δεν έχεις LAMBDA/FILTER/UNIQUE
-
-Φτιάξε ένα βοηθητικό φύλλο π.χ. _Lists με συγκεντρωτικές λίστες (π.χ. copy από τους πίνακες ή με Power Query).
-
-Φτιάξε Ονομασμένα εύρη με δυναμικό ύψος (π.χ. =OFFSET(_Lists!$A$2;0;0;COUNTA(_Lists!$A:$A)-1;1)).
-
-Για εξαρτώμενα dropdowns χρησιμοποίησε INDIRECT + ονόματα ανά “κλειδί” (π.χ. TR_Branches), ή πρόσθετους βοηθητικούς πίνακες/φόρμουλες στο _Lists.
+git push origin backup/main-YYYYMMDD-HHMMSS:main --force
 ```

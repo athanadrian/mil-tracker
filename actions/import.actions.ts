@@ -2,7 +2,6 @@
 
 import 'server-only';
 //import * as XLSX from 'xlsx';
-//const XLSX = (await import('xlsx')).default ?? (await import('xlsx'));
 
 import type * as XLSXTypes from 'xlsx';
 type WorkBook = XLSXTypes.WorkBook;

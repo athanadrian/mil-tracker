@@ -1,3 +1,4 @@
+'use client';
 import * as React from 'react';
 import {
   DropdownMenu,
@@ -40,6 +41,7 @@ type ConfirmDeleteCfg =
 
 type AppCrudMenuProps = {
   trigger?: React.ReactNode;
+  menuIcon?: any;
   align?: 'start' | 'center' | 'end';
   sideOffset?: number;
   contentClassName?: string;
@@ -74,6 +76,7 @@ type AppCrudMenuProps = {
 
 const AppCrudMenu = ({
   trigger,
+  menuIcon = appIcons.dots_menu,
   align = 'end',
   sideOffset = 4,
   contentClassName,
@@ -132,7 +135,7 @@ const AppCrudMenu = ({
       className='inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent'
       aria-label='Actions'
     >
-      <AppIcon icon={appIcons.menu} size={16} />
+      <AppIcon icon={menuIcon} size={16} />
     </button>
   );
 

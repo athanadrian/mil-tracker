@@ -1,9 +1,8 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import type { ReadonlyURLSearchParams } from 'next/navigation';
-import type { Prisma } from '@prisma/client';
 
-import { ServiceStatus, PersonType } from '@prisma/client';
+import { Prisma, ServiceStatus, PersonType } from '@prisma/client';
 import { getEntityName, type EntityKey } from '@/actions/common.actions';
 import { PersonFilters } from '@/types/person';
 
@@ -290,4 +289,44 @@ export function toStringArray(json: unknown): string[] {
   }
 
   return [];
+}
+
+export function toStringArrayFromJson(
+  v: Prisma.JsonValue | null | undefined
+): string[] {
+  if (!v) return [];
+  try {
+    if (Array.isArray(v)) {
+      return v.map((x) => (typeof x === 'string' ? x : '')).filter(Boolean);
+    }
+    // αν έρχεται stringified json
+    if (typeof v === 'string') {
+      const parsed = JSON.parse(v);
+      if (Array.isArray(parsed)) {
+        return parsed
+          .map((x) => (typeof x === 'string' ? x : ''))
+          .filter(Boolean);
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return [];
+}
+
+export function fmtDate(d?: string | number | Date | null): string {
+  if (!d) return '—';
+  const dd = new Date(d);
+  return isNaN(dd.getTime()) ? '—' : dd.toLocaleDateString();
+}
+
+// utils/formatDate.ts
+export function formatDateISOToDDMMYYYY(iso: string, locale = 'el-GR') {
+  // Αποφυγή timezone drift: κρατάμε UTC
+  return new Intl.DateTimeFormat(locale, {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(iso));
 }

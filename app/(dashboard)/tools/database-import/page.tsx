@@ -15,9 +15,6 @@ const ImportDatabasePage = () => {
       <AppPageTitle
         title='Βάση Δεδομένων'
         subtitle='Εισαγωγή δεδομένων από Φύλλο Εργασίας(.xlxs)'
-        // actionLabel='Νέα Χώρα'
-        // actionHref='/tools/database/new'
-        // actionIconKey='add'
       />
       <div className='mt-4'>
         <ImportLookupsCard />
