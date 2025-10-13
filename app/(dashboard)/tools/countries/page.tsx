@@ -1,6 +1,5 @@
-import { AppPageBreadcrumbs, AppPageTitle } from '@/components/app-ui';
-import React from 'react';
-
+import { AppPageBreadcrumbs } from '@/components/app-ui';
+import { CountriesContainer } from '@/components/tools/countries';
 const CountriesPage = () => {
   return (
     <div className='p-4 space-y-6'>
@@ -8,14 +7,10 @@ const CountriesPage = () => {
         base={{ href: '/', label: 'Πίνακας Ελέγχου' }}
         segmentLabels={{ tools: 'Εργαλεία', countries: 'Χώρες' }}
       />
-      <AppPageTitle
-        title='Χώρες'
-        subtitle='Διαχείριση στοιχείων χωρών'
-        actionLabel='Νέα Χώρα'
-        actionHref='/tools/countries/new'
-        actionIconKey='add'
-      />
-      <div className='mt-4'>countriesPage</div>
+
+      <div className='mt-4'>
+        <CountriesContainer />
+      </div>
     </div>
   );
 };

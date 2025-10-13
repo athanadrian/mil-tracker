@@ -1,13 +1,6 @@
 import { getPersonDetailById } from '@/actions/person.actions';
-import {
-  AppCrudMenu,
-  AppIcon,
-  AppPageBreadcrumbs,
-  AppPageTitle,
-} from '@/components/app-ui';
+import { AppPageBreadcrumbs } from '@/components/app-ui';
 import { PersonContainer } from '@/components/personnel';
-import { Button } from '@/components/ui/button';
-import { appIcons } from '@/constants/app-icons';
 import React from 'react';
 type Props = { params: { id: string } };
 

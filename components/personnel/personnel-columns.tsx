@@ -201,6 +201,7 @@ export function makePersonnelColumns(opts?: {
         <Flag
           flag={row.original.country?.flag}
           name={row.original.country?.name}
+          className='rounded-sm'
         />
       ),
     },
