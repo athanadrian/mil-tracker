@@ -54,7 +54,7 @@ import {
   LiaBoxesSolid,
 } from 'react-icons/lia';
 import { SiAwsorganizations } from 'react-icons/si';
-import { GoEye, GoWorkflow, GoMoon, GoCheck } from 'react-icons/go';
+import { GoEye, GoWorkflow, GoMoon, GoCheck, GoNote } from 'react-icons/go';
 
 import {
   BsFileEarmarkSlides,
@@ -71,6 +71,7 @@ import {
 } from 'react-icons/tb';
 import { VscTypeHierarchySub, VscTable } from 'react-icons/vsc';
 import { TfiSave } from 'react-icons/tfi';
+import { ImBarcode } from 'react-icons/im';
 import { LogoIcon } from './custom-icons';
 
 export const appIcons = {
@@ -121,7 +122,8 @@ export const appIcons = {
 
   table: VscTable,
   cards: PiCreditCardLight,
-
+  code: ImBarcode,
+  description: GoNote,
   // ACTIONS
   upload: LuUpload,
   sort: BiSortAlt2,
