@@ -7,6 +7,7 @@ import FiltersContainer from './FiltersContainer';
 import PaginationControls from './PaginationControls';
 import Flag from './Flag';
 import ImageWithFallback from './ImageWithFallback';
+import Toaster from './Toaster';
 
 export {
   Stat,
@@ -18,4 +19,5 @@ export {
   PaginationControls,
   Flag,
   ImageWithFallback,
+  Toaster,
 };

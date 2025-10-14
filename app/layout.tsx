@@ -9,6 +9,7 @@ import './globals.css';
 import InsetWithOffset from '@/components/layout/InsetWithOffset';
 import { getSidebarCounts } from '@/actions/common.actions';
 import { AppDataProvider } from '@/providers/AdminDataProvider';
+import { Toaster } from '@/components/common';
 
 export const metadata = { title: 'Military Asset Tracker' };
 
@@ -57,6 +58,7 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
             </SidebarProvider>
           </AppDataProvider>
         </ThemeProvider>
+        <Toaster richColors />
       </body>
     </html>
   );
