@@ -116,7 +116,7 @@ const RegionsTable: React.FC<Props> = ({
   onEdit,
   onDelete,
   onBulkDelete,
-  pageSize = 1,
+  pageSize = 5,
   className,
 }) => {
   const router = useRouter();

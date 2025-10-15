@@ -85,31 +85,34 @@ const RegionFormDialog = ({
       }
     >
       <div className='grid grid-cols-1 md:grid-cols-2 gap-3'>
-        {/* <div>
+        <div>
           <AppTextInputField
-            label="Όνομα *"
-            placeholder="π.χ. Ευρώπη"
+            name='name'
+            label='Όνομα *'
+            placeholder='π.χ. Ευρώπη'
             error={errors.name?.message}
-            {...register('name')}
+            register={register}
           />
         </div>
         <div>
           <AppTextInputField
-            label="Code"
-            placeholder="π.χ. EU"
+            name='code'
+            label='Code'
+            placeholder='π.χ. EU'
             error={errors.code?.message}
-            {...register('code')}
+            register={register}
           />
         </div>
-        <div className="md:col-span-2">
+        <div className='md:col-span-2'>
           <AppTextarea
-            label="Περιγραφή"
-            placeholder="Σύντομη περιγραφή…"
+            name='description'
+            label='Περιγραφή'
+            placeholder='Σύντομη περιγραφή…'
             error={errors.description?.message}
-            {...register('description')}
+            register={register}
             rows={4}
           />
-        </div> */}
+        </div>
       </div>
     </AppDialog>
   );

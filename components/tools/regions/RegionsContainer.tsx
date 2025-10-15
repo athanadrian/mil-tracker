@@ -36,6 +36,12 @@ const trigger = (
   </Button>
 );
 
+type RegionPayload = {
+  name: string;
+  code?: string;
+  description?: string;
+};
+
 const RegionsContainer = ({ regions }: { regions: RegionDTO[] }) => {
   const [rows, setRows] = useState<RegionDTO[]>(regions);
   const [openForm, setOpenForm] = useState(false);
@@ -59,9 +65,8 @@ const RegionsContainer = ({ regions }: { regions: RegionDTO[] }) => {
     setDeleteId(row.id);
   };
 
-  const onSubmit = async (values: FormValues) => {
-    // normalize: άδειο string -> undefined
-    const payload = {
+  const onSubmit = async (values: FormValues): Promise<void> => {
+    const payload: RegionPayload = {
       name: values.name.trim(),
       code: values.code?.trim() ? values.code.trim() : undefined,
       description: values.description?.trim()
@@ -71,13 +76,20 @@ const RegionsContainer = ({ regions }: { regions: RegionDTO[] }) => {
 
     if (isEdit && current) {
       const res = await updateRegion(current.id, payload);
-      if (!res.ok) return toast.error(res.error ?? 'Σφάλμα ενημέρωσης');
+      if (!res.ok) {
+        toast.error(res.error ?? 'Σφάλμα ενημέρωσης');
+        return; // <-- ΟΧΙ return toast.error(...)
+      }
       toast.success('Η περιοχή ενημερώθηκε');
     } else {
       const res = await createRegion(payload);
-      if (!res.ok) return toast.error(res.error ?? 'Σφάλμα δημιουργίας');
+      if (!res.ok) {
+        toast.error(res.error ?? 'Σφάλμα δημιουργίας');
+        return; // <-- ΟΧΙ return toast.error(...)
+      }
       toast.success('Η περιοχή δημιουργήθηκε');
     }
+
     setOpenForm(false);
   };
 
@@ -114,13 +126,13 @@ const RegionsContainer = ({ regions }: { regions: RegionDTO[] }) => {
       <RegionsTable rows={rows} onEdit={handleEdit} onDelete={handleDelete} />
 
       {/* Add/Edit Dialog */}
-      {/* <RegionFormDialog
+      <RegionFormDialog
         open={openForm}
         onOpenChange={setOpenForm}
         isEdit={isEdit}
         initial={current ?? undefined}
-        onSubmit={onSubmit} 
-      />*/}
+        onSubmit={onSubmit}
+      />
 
       {/* Delete confirm */}
       <AlertDialog
