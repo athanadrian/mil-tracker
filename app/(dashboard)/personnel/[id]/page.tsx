@@ -2,10 +2,12 @@ import { getPersonDetailById } from '@/actions/person.actions';
 import { AppPageBreadcrumbs } from '@/components/app-ui';
 import { PersonContainer } from '@/components/personnel';
 import React from 'react';
-type Props = { params: { id: string } };
 
-const PersonPage = async ({ params }: Props) => {
-  const { id } = params;
+type PageProps = {
+  params: Promise<{ id: string }>;
+};
+const PersonPage = async ({ params }: PageProps) => {
+  const { id } = await params;
   const personDetails = await getPersonDetailById(id);
   console.log('personDetails', personDetails);
 

@@ -4,12 +4,15 @@ import { getPersonDetailById } from '@/actions/person.actions';
 import { AppIcon, AppPageBreadcrumbs, AppPageTitle } from '@/components/app-ui';
 
 type Props = {
-  searchParams: { edit?: string };
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 const AddEditPersonPage = async ({ searchParams }: Props) => {
   const sp = await searchParams;
-  const editId = sp?.edit;
+  const raw = sp?.edit;
+  const editId =
+    typeof raw === 'string' ? raw : Array.isArray(raw) ? raw[0] : undefined;
+
   const person = editId ? await getPersonDetailById(editId) : null;
   const personName = person
     ? `${person.firstName ?? ''} ${person.lastName ?? ''}`.trim() || 'Άγνωστος'

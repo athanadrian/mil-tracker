@@ -10,6 +10,7 @@ import AppActionMenuItem, { AppActionMenuItemProps } from './AppActionMenuItem';
 import AppCrudMenu from './AppCrudMenu';
 import AppDialog from './AppDialog';
 import AppTextarea from './AppTextarea';
+import AppAlertDialog from './AppAlertDialog';
 
 export {
   AppIcon,
@@ -24,6 +25,7 @@ export {
   AppCrudMenu,
   AppDialog,
   AppTextarea,
+  AppAlertDialog,
 };
 
 export type { AppIconProps, IconLike } from './AppIcon';

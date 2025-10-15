@@ -8,11 +8,11 @@ import { parseFilters, toPersonFilters } from '@/lib/utils';
 import { PersonFilters } from '@/types/person';
 import { getSelectOptionsCached } from '@/actions/common.actions';
 
-type PersonnelPageProps = {
-  searchParams: { [key: string]: string | string[] | undefined };
-};
-
-const PersonnelPage = async ({ searchParams }: PersonnelPageProps) => {
+const PersonnelPage = async ({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) => {
   const sp = await searchParams;
   const pf = parseFilters(sp);
   const filters: PersonFilters = toPersonFilters(pf);

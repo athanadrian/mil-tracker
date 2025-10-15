@@ -58,7 +58,7 @@
   },
   "scripts": {
     "dev": "concurrently -k \"cross-env NODE_OPTIONS=--max-old-space-size=8192 PORT=5123 HOSTNAME=127.0.0.1 DATABASE_URL=file:./data/mil.db next dev -p 5123\" \"wait-on tcp:5123 && electron .\"",
-    "build": "NODE_OPTIONS=--max-old-space-size=8192 next build ",
+    "build": "next build ",
     "start": "concurrently -k \"cross-env NODE_OPTIONS=--max-old-space-size=8192 PORT=5123 HOSTNAME=127.0.0.1 DATABASE_URL=file:./data/mil.db next start -p 5123\" \"wait-on tcp:5123 && electron .\"",
     "dev:clean": "npm run clean && npm run dev",
     "prisma:generate": "cross-env DATABASE_URL=file:../data/mil.db prisma generate --schema=prisma/schema.prisma",
