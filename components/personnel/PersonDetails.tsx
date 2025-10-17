@@ -213,28 +213,28 @@ const PersonDetails: React.FC<Props> = ({ person }) => {
               </Badge>
             </div>
             <div className='mt-2 border rounded-md overflow-hidden'>
-              {person.installations?.length ? (
-                <table className='w-full text-sm'>
-                  <thead className='bg-muted/50'>
-                    <tr className='text-left'>
-                      <th className='p-2'>Θέση / Μονάδα / Οργανισμός</th>
-                      <th className='p-2'>Ρόλος</th>
-                      <th className='p-2'>Από</th>
-                      <th className='p-2'>Έως</th>
-                      <th className='p-2 text-right'>
-                        <AppCrudMenu
-                          items={[
-                            {
-                              key: 'add-installation',
-                              label: 'Προσθήκη Τοποθέτησης',
-                              icon: <AppIcon icon={appIcons.add} />,
-                              onAction: () => {},
-                            },
-                          ]}
-                        />
-                      </th>
-                    </tr>
-                  </thead>
+              <table className='w-full text-sm'>
+                <thead className='bg-muted/50'>
+                  <tr className='text-left'>
+                    <th className='p-2'>Θέση / Μονάδα / Οργανισμός</th>
+                    <th className='p-2'>Ρόλος</th>
+                    <th className='p-2'>Από</th>
+                    <th className='p-2'>Έως</th>
+                    <th className='p-2 text-right'>
+                      <AppCrudMenu
+                        items={[
+                          {
+                            key: 'add-installation',
+                            label: 'Προσθήκη Τοποθέτησης',
+                            icon: <AppIcon icon={appIcons.add} />,
+                            onAction: () => {},
+                          },
+                        ]}
+                      />
+                    </th>
+                  </tr>
+                </thead>
+                {person.installations?.length ? (
                   <tbody>
                     {person.installations.map((ins, i) => (
                       <tr key={i} className='border-t'>
@@ -262,12 +262,14 @@ const PersonDetails: React.FC<Props> = ({ person }) => {
                       </tr>
                     ))}
                   </tbody>
-                </table>
-              ) : (
-                <div className='p-3 text-sm text-muted-foreground'>
-                  Χωρίς τοποθετήσεις
-                </div>
-              )}
+                ) : (
+                  <tr className='p-3 text-sm text-muted-foreground'>
+                    <td className='p-2 text-center' colSpan={8}>
+                      Δεν υπάρχουν καταγεγραμμένες τοποθετήσεις
+                    </td>
+                  </tr>
+                )}
+              </table>
             </div>
           </section>
 
@@ -283,27 +285,27 @@ const PersonDetails: React.FC<Props> = ({ person }) => {
               </Badge>
             </div>
             <div className='mt-2 border rounded-md overflow-hidden'>
-              {person.promotions?.length ? (
-                <table className='w-full text-sm'>
-                  <thead className='bg-muted/50'>
-                    <tr className='text-left'>
-                      <th className='p-2'>Έτος</th>
-                      <th className='p-2'>Βαθμός</th>
-                      <th className='p-2'>Σημειώσεις</th>
-                      <th className='p-2 text-right'>
-                        <AppCrudMenu
-                          items={[
-                            {
-                              key: 'add-promotion',
-                              label: 'Προσθήκη Προαγωγής',
-                              icon: <AppIcon icon={appIcons.add} />,
-                              onAction: () => {},
-                            },
-                          ]}
-                        />
-                      </th>
-                    </tr>
-                  </thead>
+              <table className='w-full text-sm'>
+                <thead className='bg-muted/50'>
+                  <tr className='text-left'>
+                    <th className='p-2'>Έτος</th>
+                    <th className='p-2'>Βαθμός</th>
+                    <th className='p-2'>Σημειώσεις</th>
+                    <th className='p-2 text-right'>
+                      <AppCrudMenu
+                        items={[
+                          {
+                            key: 'add-promotion',
+                            label: 'Προσθήκη Προαγωγής',
+                            icon: <AppIcon icon={appIcons.add} />,
+                            onAction: () => {},
+                          },
+                        ]}
+                      />
+                    </th>
+                  </tr>
+                </thead>
+                {person.promotions?.length ? (
                   <tbody>
                     {person.promotions.map((p, i) => (
                       <tr key={i} className='border-t'>
@@ -324,12 +326,14 @@ const PersonDetails: React.FC<Props> = ({ person }) => {
                       </tr>
                     ))}
                   </tbody>
-                </table>
-              ) : (
-                <div className='p-3 text-sm text-muted-foreground'>
-                  Χωρίς προαγωγές
-                </div>
-              )}
+                ) : (
+                  <tr className='p-3 text-sm text-muted-foreground'>
+                    <td className='p-2 text-center' colSpan={8}>
+                      Δεν υπάρχουν καταγεγραμμένες προαγωγές
+                    </td>
+                  </tr>
+                )}
+              </table>
             </div>
           </section>
 
@@ -346,43 +350,45 @@ const PersonDetails: React.FC<Props> = ({ person }) => {
             </div>
 
             <div className='mt-2 border rounded-md overflow-hidden'>
-              {person.meetings?.length ? (
-                <table className='w-full text-sm'>
-                  <thead className='bg-muted/50'>
-                    <tr className='text-left'>
-                      <th className='p-2 w-0'></th>
-                      <th className='p-2'>Κωδικός</th>
-                      <th className='p-2'>Ημερομηνία</th>
-                      <th className='p-2'>Περίληψη</th>
-                      <th className='p-2'>Τοποθεσία</th>
-                      <th className='p-2'>Χώρα</th>
-                      <th className='p-2'>Οργανισμοί</th>
-                      <th className='p-2'>Ρόλος (ως participant)</th>
-                      <th className='p-2'>
-                        <AppCrudMenu
-                          items={[
-                            {
-                              key: 'add-meeting',
-                              label: 'Προσθήκη Συνάντησης',
-                              icon: <AppIcon icon={appIcons.add} />,
-                              onAction: () => {},
-                            },
-                          ]}
-                        />
-                      </th>
-                    </tr>
-                  </thead>
+              <table className='w-full text-sm'>
+                <thead className='bg-muted/50'>
+                  <tr className='text-left'>
+                    <th className='p-2 w-0'></th>
+                    <th className='p-2'>Κωδικός</th>
+                    <th className='p-2'>Ημερομηνία</th>
+                    <th className='p-2'>Περίληψη</th>
+                    <th className='p-2'>Τοποθεσία</th>
+                    <th className='p-2'>Χώρα</th>
+                    <th className='p-2'>Οργανισμοί</th>
+                    <th className='p-2'>Ρόλος (ως participant)</th>
+                    <th className='p-2'>
+                      <AppCrudMenu
+                        items={[
+                          {
+                            key: 'add-meeting',
+                            label: 'Προσθήκη Συνάντησης',
+                            icon: <AppIcon icon={appIcons.add} />,
+                            onAction: () => {},
+                          },
+                        ]}
+                      />
+                    </th>
+                  </tr>
+                </thead>
+                {person.meetings?.length ? (
                   <tbody>
                     {person.meetings.map((m, i) => (
                       <MeetingRow key={m.id} idx={i} meeting={m} />
                     ))}
                   </tbody>
-                </table>
-              ) : (
-                <div className='p-3 text-sm text-muted-foreground'>
-                  Δεν υπάρχουν καταγεγραμμένες συναντήσεις
-                </div>
-              )}
+                ) : (
+                  <tr className='p-3 text-sm text-muted-foreground'>
+                    <td className='p-2 text-center' colSpan={8}>
+                      Δεν υπάρχουν καταγεγραμμένες συναντήσεις
+                    </td>
+                  </tr>
+                )}
+              </table>
             </div>
           </section>
 
