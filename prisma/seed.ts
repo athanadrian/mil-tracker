@@ -10,6 +10,7 @@ import {
 
 const prisma = new PrismaClient();
 
+/* ----------------------------- Upsert helpers ----------------------------- */
 async function upsertRegion(name: string, code?: string, description?: string) {
   return prisma.region.upsert({
     where: { name },
@@ -18,11 +19,21 @@ async function upsertRegion(name: string, code?: string, description?: string) {
   });
 }
 
-async function upsertCountry(name: string, iso2?: string, regionId?: string) {
+async function upsertCountry(name: string, iso2?: string) {
+  // Νέο schema: ΔΕΝ υπάρχει regionId στο Country (M2M πλέον)
   return prisma.country.upsert({
     where: { name },
-    update: { iso2, regionId },
-    create: { name, iso2, regionId },
+    update: { iso2 },
+    create: { name, iso2 },
+  });
+}
+
+async function linkCountryToRegion(countryId: string, regionId: string) {
+  // Bridge table CountryRegion με σύνθετο PK [countryId, regionId]
+  return prisma.countryRegion.upsert({
+    where: { countryId_regionId: { countryId, regionId } },
+    update: {},
+    create: { countryId, regionId },
   });
 }
 
@@ -63,8 +74,9 @@ async function upsertSpecialty(
   code?: string,
   description?: string
 ) {
+  // Στο schema το name της Specialty είναι @unique
   return prisma.specialty.upsert({
-    where: { name }, // name είναι unique
+    where: { name },
     update: { code, description, branchId: branchId || undefined },
     create: { name, code, description, branchId: branchId || undefined },
   });
@@ -76,17 +88,17 @@ async function upsertPosition(
   description?: string
 ) {
   if (code) {
-    // απαιτεί το code να είναι @unique στο schema
+    // Position.code είναι @unique
     return prisma.position.upsert({
-      where: { code }, // OK: code είναι unique
+      where: { code },
       update: { name, description },
       create: { name, code, description },
     });
   }
 
-  // Δεν έχουμε unique κλειδί -> κάνε χειροκίνητο find/update/create
+  // Αν δεν έχεις unique, κάνε “χειροκίνητο” findFirst
   const existing = await prisma.position.findFirst({
-    where: { name }, // όχι unique, απλά βρίσκουμε το πρώτο
+    where: { name },
     select: { id: true },
   });
 
@@ -96,7 +108,6 @@ async function upsertPosition(
       data: { name, description },
     });
   }
-
   return prisma.position.create({ data: { name, description } });
 }
 
@@ -118,8 +129,8 @@ async function upsertUnit(
       countryId,
       branchId: branchId || undefined,
       parentId: parentId || undefined,
-      latitude: lat || undefined,
-      longitude: lon || undefined,
+      latitude: lat ?? undefined,
+      longitude: lon ?? undefined,
     },
     create: {
       name,
@@ -128,8 +139,8 @@ async function upsertUnit(
       countryId,
       branchId: branchId || undefined,
       parentId: parentId || undefined,
-      latitude: lat || undefined,
-      longitude: lon || undefined,
+      latitude: lat ?? undefined,
+      longitude: lon ?? undefined,
     },
   });
 }
@@ -148,7 +159,7 @@ async function findOrCreatePerson(opts: {
   description?: string | null;
   status?: ServiceStatus;
 }) {
-  // Δεν υπάρχει μοναδικό constraint στο άτομο, κάνουμε findFirst “λογικά”:
+  // Λογικό uniqueness: (first,last,country?,type)
   const existing = await prisma.person.findFirst({
     where: {
       firstName: opts.firstName,
@@ -182,7 +193,7 @@ async function createPromotion(
   rankId: string,
   promotionYear: number
 ) {
-  // Προστασία του UNIQUE (personId, rankId, promotionYear)
+  // Προστασία UNIQUE (personId, rankId, promotionYear)
   try {
     return await prisma.promotion.create({
       data: { personId, rankId, promotionYear },
@@ -230,6 +241,7 @@ async function createPosting(opts: {
   });
 }
 
+/* ---------------------------------- Main ---------------------------------- */
 async function main() {
   // 1) Regions
   const europe = await upsertRegion('Europe', 'EU', 'European region');
@@ -246,24 +258,25 @@ async function main() {
   await upsertRegion('Balkans', 'BAL', 'Balkan region');
   await upsertRegion('Africa', 'AF', 'Africa');
   await upsertRegion('Asia', 'AS', 'Asia');
-  await upsertRegion('Americas', 'AM', 'North & South America');
   await upsertRegion('Oceania', 'OC', 'Oceania');
 
-  // 2) Countries
-  const gr = await upsertCountry('Greece', 'GR', europe.id);
-  const tr = await upsertCountry('Turkey', 'TR', europe.id);
-  const us = await upsertCountry(
-    'United States',
-    'US',
-    amerOrEurope(americas.id)
-  ); // helper below
+  // 2) Countries (ΧΩΡΙΣ regionId)
+  const gr = await upsertCountry('Greece', 'GR');
+  const tr = await upsertCountry('Turkey', 'TR');
+  const us = await upsertCountry('United States', 'US');
+
+  // 2b) Συνδέσεις Country ⟷ Region (M2M)
+  await linkCountryToRegion(gr.id, europe.id);
+  await linkCountryToRegion(tr.id, europe.id);
+  await linkCountryToRegion(tr.id, middleEast.id); // π.χ. TR και στη ME
+  await linkCountryToRegion(us.id, americas.id);
 
   // 3) Branches (Greece)
   const ha = await upsertBranch(gr.id, 'Hellenic Army', 'HA');
   const hn = await upsertBranch(gr.id, 'Hellenic Navy', 'HN');
   const haf = await upsertBranch(gr.id, 'Hellenic Air Force', 'HAF');
 
-  // 4) Ranks (a few per Army)
+  // 4) Ranks (Army δείγματα)
   const rGen = await upsertRank(
     ha.id,
     'General',
@@ -287,7 +300,7 @@ async function main() {
     3
   );
 
-  // 5) Specialties (Army)
+  // 5) Specialties
   const spInf = await upsertSpecialty(
     ha.id,
     'Infantry',
@@ -307,7 +320,7 @@ async function main() {
     'Signals branch'
   );
 
-  // 6) Positions (generic)
+  // 6) Positions
   const posCmdr = await upsertPosition('Commander', 'CMD', 'Διοικητής');
   const posCoS = await upsertPosition('Chief of Staff', 'COS', 'Επιτελάρχης');
   const posPltLdr = await upsertPosition(
@@ -321,7 +334,7 @@ async function main() {
     'Αξκος Επιτελείου'
   );
 
-  // 7) Units (Greece, Army hierarchy)
+  // 7) Units (ιεραρχία)
   const uHq = await upsertUnit(
     'Army General Staff',
     'GR-HA-HQ',
@@ -357,7 +370,7 @@ async function main() {
     uBde.id
   );
 
-  // 8) People (MILITARY)
+  // 8) People
   const p1 = await findOrCreatePerson({
     firstName: 'Nikolaos',
     lastName: 'Papadopoulos',
@@ -384,12 +397,11 @@ async function main() {
     status: ServiceStatus.ACTIVE,
   });
 
-  // 9) Promotions (history)
+  // 9) Promotions
   await createPromotion(p1.id, rMaj.id, 2020);
   await createPromotion(p1.id, rCol.id, 2024);
 
-  // 10) Postings / Installations (history)
-  // p1: Battalion Commander at 21st Tank Battalion
+  // 10) Postings
   await createPosting({
     personId: p1.id,
     unitId: uBn.id,
@@ -402,7 +414,6 @@ async function main() {
     description: 'Assumed command of 21st TB',
   });
 
-  // p1: Brigade Staff Officer at 5th Armored Brigade
   await createPosting({
     personId: p1.id,
     unitId: uBde.id,
@@ -414,7 +425,6 @@ async function main() {
     description: 'Posted to Brigade HQ staff',
   });
 
-  // p2: Platoon Leader at 21st Tank Battalion
   await createPosting({
     personId: p2.id,
     unitId: uBn.id,
@@ -428,17 +438,7 @@ async function main() {
   console.log('Seed (personnel core) — OK');
 }
 
-// Helper: pick an “Americas” region id if present, otherwise fallback to Europe
-function amerOrEurope(europeId: string) {
-  return europeId; // simple fallback; adjust if you add a separate Americas region earlier
-}
-
-async function usRegionId(europeId: string) {
-  // If you seeded an 'Americas' region above, you can resolve it here, else fallback to Europe
-  const amer = await prisma.region.findUnique({ where: { name: 'Americas' } });
-  return amer?.id ?? europeId;
-}
-
+/* --------------------------------- Entrypoint ----------------------------- */
 main()
   .catch((e) => {
     console.error('Seed error:', e);

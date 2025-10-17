@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/select';
 import { AppIcon } from '@/components/app-ui';
 import { appIcons } from '@/constants/app-icons';
-import { AppSelect } from '@/components/app-ui';
+import { AppSelect, AppMultiSelectMini } from '@/components/app-ui';
 
 const CLEAR_TOKEN = '__CLEAR__' as const;
 
@@ -54,6 +54,14 @@ export type AppSelectFilterItem = BaseFilterItem & {
   getLabel?: (opt: AppSelectOption) => string;
 };
 
+/** NEW: Multi-select (comma-separated serialization) */
+export type AppMultiSelectMiniOption = { value: string; label: string };
+export type AppMultiSelectFilterItem = BaseFilterItem & {
+  type: 'appmultiselect';
+  options?: AppMultiSelectMiniOption[];
+  delimiter?: string; // default ','
+};
+
 export type CustomFilterRenderArgs = {
   value: string;
   setValue: (v: string) => void;
@@ -69,6 +77,7 @@ export type FilterItem =
   | TextFilterItem
   | SelectFilterItem
   | AppSelectFilterItem
+  | AppMultiSelectFilterItem // <-- προστέθηκε
   | CustomFilterItem;
 
 export type FiltersBarProps = {
@@ -186,8 +195,7 @@ const FiltersBar = memo(function FiltersBar({
           <SelectContent>
             {item.includeClear !== false && (
               <SelectItem value={CLEAR_TOKEN}>
-                {' '}
-                {item.clearLabel || 'Όλα'}{' '}
+                {item.clearLabel || 'Όλα'}
               </SelectItem>
             )}
             {opts.map((opt) => (
@@ -238,7 +246,6 @@ const FiltersBar = memo(function FiltersBar({
         ? item.clearLabel || 'Όλα'
         : item.getLabel?.(opt) ?? String((opt as any)?.label ?? '');
 
-    // Be robust to AppSelect implementations that return either the id string OR the whole option object
     const handleChange = (v: any) => {
       const raw = typeof v === 'string' ? v : v?.id ?? v?.value ?? '';
       const next = raw === CLEAR_TOKEN ? '' : String(raw ?? '');
@@ -262,6 +269,53 @@ const FiltersBar = memo(function FiltersBar({
           showSelect
           getLabel={getLabel as any}
           disabled={isDisabled}
+          className='h-9'
+        />
+      </div>
+    );
+  };
+
+  /** NEW: renderer για multi-select (comma-separated) */
+  const renderAppMultiSelectItem = (
+    item: AppMultiSelectFilterItem,
+    variant: Variant
+  ) => {
+    const delimiter = item.delimiter ?? ',';
+    const raw = filters?.[item.key] ?? '';
+    const valueArr = raw
+      ? raw
+          .split(delimiter)
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : [];
+    const isDisabled = isItemDisabled(item as any, raw);
+    const style =
+      variant === 'desktop' && item.width
+        ? {
+            width:
+              typeof item.width === 'number' ? `${item.width}px` : item.width,
+          }
+        : undefined;
+
+    const handleChange = (next: string[]) => {
+      // κενό array => κενή συμβολοσειρά (clear)
+      setField(item.key, next.length ? next.join(delimiter) : '');
+    };
+
+    return (
+      <div
+        key={item.key}
+        className={cn(
+          variant === 'mobile' ? 'w-full' : 'w-[260px]',
+          item.className
+        )}
+        style={style}
+      >
+        <AppMultiSelectMini
+          value={valueArr}
+          onChange={handleChange}
+          options={item.options || []}
+          placeholder={item.placeholder || 'Επιλέξτε...'}
           className='h-9'
         />
       </div>
@@ -297,6 +351,8 @@ const FiltersBar = memo(function FiltersBar({
     if (item.type === 'text') return renderTextItem(item, variant);
     if (item.type === 'select') return renderSelectItem(item, variant);
     if (item.type === 'appselect') return renderAppSelectItem(item, variant);
+    if (item.type === 'appmultiselect')
+      return renderAppMultiSelectItem(item, variant);
     if (item.type === 'custom') return renderCustomItem(item, variant);
     return null;
   };
@@ -305,19 +361,14 @@ const FiltersBar = memo(function FiltersBar({
     <div className={cn('rounded-md border bg-muted/30', className)}>
       {/* MOBILE / SMALL (md:hidden) */}
       <div className='md:hidden px-3 py-2 space-y-2'>
-        {/* 1) Text inputs row (πάνω, full-width) */}
         <div className='w-full space-y-2'>
           {textItems.length > 0
             ? textItems.map((it) => renderItem(it, 'mobile'))
             : null}
         </div>
-
-        {/* 2) Other controls κάτω: 1 στήλη σε xs, 2 στήλες από sm και πάνω */}
         <div className='grid grid-cols-1 sm:grid-cols-2 gap-2'>
           {otherItems.map((it) => renderItem(it, 'mobile'))}
         </div>
-
-        {/* 3) End slot + Clear */}
         <div className='flex items-center gap-2 pt-1'>
           {endSlot}
           {hasActive && (

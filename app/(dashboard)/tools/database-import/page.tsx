@@ -1,5 +1,5 @@
 import { AppPageBreadcrumbs, AppPageTitle } from '@/components/app-ui';
-import { ImportLookupsCard } from '@/components/database';
+import { ImportContainer } from '@/components/database';
 import React from 'react';
 
 const ImportDatabasePage = () => {
@@ -17,7 +17,7 @@ const ImportDatabasePage = () => {
         subtitle='Εισαγωγή δεδομένων από Φύλλο Εργασίας(.xlxs)'
       />
       <div className='mt-4'>
-        <ImportLookupsCard />
+        <ImportContainer />
       </div>
     </div>
   );

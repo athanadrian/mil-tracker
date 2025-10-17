@@ -243,6 +243,17 @@ function extractName(r: any) {
   return { firstName, lastName, hadAnyName: !!(firstName || lastName || full) };
 }
 
+// "EU, NATO; OTS\nGov" -> ["EU","NATO","OTS","Gov"]
+function parseList(cell: unknown): string[] {
+  if (cell == null) return [];
+  const s = String(cell).trim();
+  if (!s) return [];
+  return s
+    .split(/[,;|\n]/g)
+    .map((x) => x.trim())
+    .filter(Boolean);
+}
+
 /* ------------- XLSX helpers: case-insensitive sheets, lower headers -------- */
 let _XLSX: typeof import('xlsx') | null = null;
 async function getXLSX() {
@@ -410,28 +421,31 @@ export async function wipeDatabase(): Promise<WipeResult> {
   const deleted: Record<string, number> = {};
   try {
     const res = await prisma.$transaction(async (db) => {
-      // Meetings
+      /* ---------- Meetings (children πρώτα) ---------- */
       deleted.MeetingParticipants = (
         await db.meetingParticipant.deleteMany({})
       ).count;
       deleted.MeetingTopics = (await db.meetingTopic.deleteMany({})).count;
+      deleted.MeetingOrganizations = (
+        await db.meetingOrganization.deleteMany({})
+      ).count;
       deleted.Meetings = (await db.meeting.deleteMany({})).count;
 
-      // Assignments / Links
+      /* ---------- Assignments / Links ---------- */
       deleted.EquipmentAssignments = (
         await db.equipmentAssignment.deleteMany({})
       ).count;
       deleted.DocumentLinks = (await db.documentLink.deleteMany({})).count;
 
-      // personnel-related
+      /* ---------- Personnel & related ---------- */
       deleted.PersonOrganizations = (
         await db.personOrganization.deleteMany({})
       ).count;
       deleted.PersonPostings = (await db.personPosting.deleteMany({})).count;
       deleted.Promotions = (await db.promotion.deleteMany({})).count;
-      deleted.personnel = (await db.person.deleteMany({})).count;
+      deleted.Personnel = (await db.person.deleteMany({})).count;
 
-      // Orgs / Companies cross links
+      /* ---------- Orgs / Companies cross-links ---------- */
       deleted.CompanyOrganizations = (
         await db.companyOrganization.deleteMany({})
       ).count;
@@ -440,20 +454,23 @@ export async function wipeDatabase(): Promise<WipeResult> {
       ).count;
       deleted.CompanyOffices = (await db.companyOffice.deleteMany({})).count;
 
-      // Equipment, Documents, Tags
+      /* ---------- Equipment / Docs / Tags ---------- */
       deleted.Equipments = (await db.equipment.deleteMany({})).count;
       deleted.Documents = (await db.document.deleteMany({})).count;
       deleted.Tags = (await db.tag.deleteMany({})).count;
 
-      // Core lookups
+      /* ---------- Core lookups που έχουν children ---------- */
       deleted.Units = (await db.unit.deleteMany({})).count;
       deleted.Organizations = (await db.organization.deleteMany({})).count;
       deleted.Specialties = (await db.specialty.deleteMany({})).count;
       deleted.Ranks = (await db.rank.deleteMany({})).count;
-      deleted.ServiceBranch = (await db.serviceBranch.deleteMany({})).count;
+      deleted.ServiceBranches = (await db.serviceBranch.deleteMany({})).count;
       deleted.Companies = (await db.company.deleteMany({})).count;
 
-      // Countries/Regions
+      /* ---------- Country–Region m-n (παιδί και των δύο) ---------- */
+      deleted.CountryRegions = (await db.countryRegion.deleteMany({})).count;
+
+      /* ---------- Countries / Regions (γονείς τελευταίοι) ---------- */
       deleted.Countries = (await db.country.deleteMany({})).count;
       deleted.Regions = (await db.region.deleteMany({})).count;
 
@@ -520,7 +537,9 @@ export async function preflightXlsx(
   if (!Object.values(load).some(Boolean)) {
     return { ok: true, errors, warnings, info };
   }
-  const XLSX = await getXLSX();
+
+  // Δυναμικό import του xlsx
+  const XLSX = await import('xlsx');
 
   const ab = await file.arrayBuffer();
   const wb = XLSX.read(ab, { type: 'array' });
@@ -530,7 +549,7 @@ export async function preflightXlsx(
       info[name] = 0;
       return [] as any[];
     }
-    const r = await readRows(wb, name);
+    const r = await readRows(wb, name); // sync helper σου
     info[name] = r.length;
     return r;
   };
@@ -581,7 +600,7 @@ export async function preflightXlsx(
     rowsIf(load.MeetingParticipants, SHEETS.MeetingParticipants),
   ]);
 
-  // --- existing validations (ενδεικτικά) ---
+  /* ----------------------------- Basic validations ----------------------------- */
   ranks.forEach((r, i) => {
     const tier = toUpper(r['tier']);
     if (!tier || !(RankTier as any)[tier]) {
@@ -589,7 +608,6 @@ export async function preflightXlsx(
     }
   });
 
-  // στο preflightXlsx
   specialties.forEach((r, i) => {
     if (!norm(r['name']))
       errors.push(`[Specialties row ${i + 2}] missing name`);
@@ -617,7 +635,7 @@ export async function preflightXlsx(
   });
 
   personnel.forEach((r, i) => {
-    if (isEmptyRow(r)) return; // αγνόησε τελείως empty lines
+    if (isEmptyRow(r)) return;
 
     const full = pickFullname(r);
     const hasParts = !!norm(r['firstname']) && !!norm(r['lastname']);
@@ -641,7 +659,6 @@ export async function preflightXlsx(
     }
   });
 
-  // ---------- UPDATED: Promotions supports fullname ----------
   promotions.forEach((r, i) => {
     const hasFull = !!norm(r['person']) || !!norm(r['fullname']);
     const hasParts = !!norm(r['firstname']) && !!norm(r['lastname']);
@@ -658,15 +675,101 @@ export async function preflightXlsx(
     }
   });
 
-  // ---------- UPDATED: MeetingParticipants supports fullname ----------
+  /* ----------------------------- Meetings / Topics / Participants ----------------------------- */
+  // Συλλογή και έλεγχος Meeting codes (μοναδικότητα + basic date)
+  const meetingCodes = new Set<string>();
+  const dupMeetingCodes = new Set<string>();
+
+  meetings.forEach((r, i) => {
+    const code = norm(r['code']);
+    const dateCell = r['date'];
+
+    // date must be parseable από τον importer σου => εδώ μόνο basic check
+    const dateOk =
+      !!dateCell &&
+      (dateCell instanceof Date
+        ? !Number.isNaN(dateCell.getTime())
+        : !Number.isNaN(new Date(String(dateCell)).getTime()));
+
+    if (!dateOk) {
+      errors.push(`[Meetings row ${i + 2}] invalid date (${r['date']})`);
+    }
+
+    if (code) {
+      if (meetingCodes.has(code)) dupMeetingCodes.add(code);
+      meetingCodes.add(code);
+    }
+  });
+
+  if (dupMeetingCodes.size) {
+    errors.push(
+      `Meetings: duplicate codes -> ${Array.from(dupMeetingCodes).join(', ')}`
+    );
+  }
+
+  // MeetingTopics: name required + valid meeting ref
+  mt.forEach((r, i) => {
+    const name = norm(r['name']);
+    if (!name) {
+      errors.push(`[MeetingTopics row ${i + 2}] missing name`);
+    }
+
+    // ΝΕΟ: meetingcode προτιμητέο, αλλά κάνε fallback σε 'meeting' ή 'code'
+    const ref = norm(r['meetingcode']) || norm(r['meeting']) || norm(r['code']);
+
+    if (!ref) {
+      errors.push(
+        `[MeetingTopics row ${
+          i + 2
+        }] missing meeting code (στήλη "meetingcode")`
+      );
+    } else if (meetingCodes.size && !meetingCodes.has(ref)) {
+      // αν φορτώναμε Meetings, μπορούμε να κάνουμε strict check. Αλλιώς warning.
+      if (load.Meetings) {
+        errors.push(
+          `[MeetingTopics row ${i + 2}] unknown meeting code "${ref}"`
+        );
+      } else {
+        warnings.push(
+          `[MeetingTopics row ${
+            i + 2
+          }] meeting code "${ref}" δεν μπορεί να επαληθευτεί (δεν φορτώνονται Meetings)`
+        );
+      }
+    }
+  });
+
+  // MeetingParticipants: person fullname required + valid meeting ref
   mp.forEach((r, i) => {
     const hasFull = !!norm(r['person']) || !!norm(r['fullname']);
     if (!hasFull) {
       errors.push(
         `[MeetingParticipants row ${
           i + 2
-        }] missing person  (δώσε "person"/"fullname")`
+        }] missing person (δώσε "person"/"fullname")`
       );
+    }
+
+    const ref = norm(r['meetingcode']) || norm(r['meeting']) || norm(r['code']);
+
+    if (!ref) {
+      errors.push(
+        `[MeetingParticipants row ${
+          i + 2
+        }] missing meeting code (στήλη "meetingcode")`
+      );
+    } else if (meetingCodes.size && !meetingCodes.has(ref)) {
+      if (load.Meetings) {
+        errors.push(
+          `[MeetingParticipants row ${i + 2}] unknown meeting code "${ref}"`
+        );
+      } else {
+        warnings.push(
+          `[MeetingParticipants row ${
+            i + 2
+          }] meeting code "${ref}" δεν μπορεί να επαληθευτεί (δεν φορτώνονται Meetings)`
+        );
+      }
     }
   });
 
@@ -1493,8 +1596,7 @@ export async function importLookupsFromXlsx(
       // αγνόησε τελείως άδειες σειρές
       if (isEmptyRow(r)) continue;
 
-      const { firstName, lastName, hadAnyName } = extractName(r);
-
+      const { firstName, lastName } = extractName(r);
       if (!firstName || !lastName) {
         result.errors.push(
           `[Personnel row ${
@@ -1505,6 +1607,7 @@ export async function importLookupsFromXlsx(
       }
 
       const type = enumFromStrict(PersonType, r['type']) ?? PersonType.MILITARY;
+
       const countryId = await getCountryIdByRef(r['country']);
       const branchId = await getBranchIdByRef(r['branch'], countryId);
       const rankId = await getRankIdByRef(r['rank']);
@@ -1517,6 +1620,7 @@ export async function importLookupsFromXlsx(
           ? new Date(Number(retiredYear), 0, 1)
           : null;
 
+      // ⛔️ ΔΕΝ βάζουμε organizationId (έχει φύγει από το Person)
       const data = {
         firstName,
         lastName,
@@ -1531,22 +1635,20 @@ export async function importLookupsFromXlsx(
         countryId: countryId ?? null,
         branchId: branchId ?? null,
         rankId: rankId ?? null,
-        organizationId:
-          (await getOrganizationIdByRef(r['organization'])) ?? null,
         companyId: (await getCompanyIdByName(r['company'])) ?? null,
         specialtyId: (await getSpecialtyIdByName(r['specialty'])) ?? null,
       };
 
       // Uniqueness: email > (first,last,country?,type)
-      let existingId: string | undefined;
+      let personId: string | undefined;
       if (data.email) {
         const byEmail = await prisma.person.findFirst({
           where: { email: data.email },
           select: { id: true },
         });
-        existingId = byEmail?.id;
+        personId = byEmail?.id;
       }
-      if (!existingId) {
+      if (!personId) {
         const byName = await prisma.person.findFirst({
           where: {
             firstName,
@@ -1556,16 +1658,63 @@ export async function importLookupsFromXlsx(
           },
           select: { id: true },
         });
-        existingId = byName?.id;
+        personId = byName?.id;
       }
 
-      if (existingId) {
+      if (personId) {
         if (!dryRun)
-          await prisma.person.update({ where: { id: existingId }, data });
+          await prisma.person.update({ where: { id: personId }, data });
         result.updated.Personnel++;
       } else {
-        if (!dryRun) await prisma.person.create({ data });
+        if (!dryRun) {
+          const created = await prisma.person.create({
+            data,
+            select: { id: true },
+          });
+          personId = created.id;
+        } else {
+          personId = `DRY-${firstName}-${lastName}`;
+        }
         result.created.Personnel++;
+      }
+
+      // -------- PersonOrganizations (m-n) --------
+      // Υποστήριξη νέας στήλης `organizations` (λίστα) ή legacy `organization` (single)
+      const orgsList = parseList(r['organizations'] ?? r['organization']);
+      if (orgsList.length && personId) {
+        if (!dryRun) {
+          // προαιρετικά: καθάρισε πρώτα ώστε να είναι idempotent ο importer
+          await prisma.personOrganization.deleteMany({
+            where: { personId },
+          });
+
+          for (const orgRef of orgsList) {
+            const organizationId = await getOrganizationIdByRef(orgRef);
+            if (!organizationId) {
+              result.errors.push(
+                `[Personnel row ${i + 2}] organization not found (${orgRef})`
+              );
+              continue;
+            }
+            await prisma.personOrganization.upsert({
+              where: {
+                personId_organizationId: { personId, organizationId },
+              },
+              create: { personId, organizationId },
+              update: {},
+            });
+          }
+        } else {
+          // σε dry-run, μόνο validation μηνυμάτων
+          for (const orgRef of orgsList) {
+            const organizationId = await getOrganizationIdByRef(orgRef);
+            if (!organizationId) {
+              result.errors.push(
+                `[Personnel row ${i + 2}] organization not found (${orgRef})`
+              );
+            }
+          }
+        }
       }
     }
   }
@@ -1898,19 +2047,24 @@ export async function importLookupsFromXlsx(
   }
 
   /* -------------------------------- Meetings ------------------------------ */
+
   if (load.Meetings) {
     for (let i = 0; i < meetingsRows.length; i++) {
       const r = meetingsRows[i];
+
       const date = asDateOrNull(r['date']);
       if (!date) {
         result.errors.push(`[Meetings row ${i + 2}] invalid date`);
         continue;
       }
+
       const code = norm(r['code']) || null;
       const location = norm(r['location']) || null;
       const summary = norm(r['summary']) || null;
       const countryId = await getCountryIdByRef(r['country']);
-      const organizationId = await getOrganizationIdByRef(r['organization']);
+
+      // ⚠️ ΝΕΟ: διαβάζουμε ΠΟΛΛΑ organizations (ή legacy single)
+      const orgRefs = parseList(r['organizations'] ?? r['organization']);
 
       const data = {
         date,
@@ -1918,27 +2072,75 @@ export async function importLookupsFromXlsx(
         summary,
         code,
         countryId: countryId ?? null,
-        organizationId: organizationId ?? null,
+        // ΔΕΝ υπάρχει organizationId στο Meeting πλέον
         meetingImagePaths: jsonFromCell(r['meetingimagepaths']),
       };
 
-      const existing = await prisma.meeting.findFirst({
-        where: {
-          date,
-          ...(code ? { code } : {}),
-          ...(location ? { location } : {}),
-          ...(summary ? { summary } : {}),
-        },
-        select: { id: true },
-      });
+      // Βρες existing: πρώτα με μοναδικό code, αλλιώς με date+location+summary
+      let meetingId: string | undefined;
+      if (code) {
+        const byCode = await prisma.meeting.findUnique({
+          where: { code },
+          select: { id: true },
+        });
+        meetingId = byCode?.id;
+      }
+      if (!meetingId) {
+        const byFields = await prisma.meeting.findFirst({
+          where: {
+            date,
+            ...(location ? { location } : {}),
+            ...(summary ? { summary } : {}),
+            ...(countryId ? { countryId } : {}),
+          },
+          select: { id: true },
+        });
+        meetingId = byFields?.id;
+      }
 
-      if (existing) {
+      if (meetingId) {
         if (!dryRun)
-          await prisma.meeting.update({ where: { id: existing.id }, data });
+          await prisma.meeting.update({ where: { id: meetingId }, data });
         result.updated.Meetings++;
       } else {
-        if (!dryRun) await prisma.meeting.create({ data });
+        if (!dryRun) {
+          const created = await prisma.meeting.create({
+            data,
+            select: { id: true },
+          });
+          meetingId = created.id;
+        } else {
+          meetingId = `DRY-${
+            code ?? `${date.toISOString()}-${location ?? ''}-${summary ?? ''}`
+          }`;
+        }
         result.created.Meetings++;
+      }
+
+      // -------- Link με Organizations (MeetingOrganization) --------
+      if (orgRefs.length && meetingId) {
+        if (!dryRun) {
+          // idempotent: καθάρισε παλιούς δεσμούς και ξαναγράψε
+          await prisma.meetingOrganization.deleteMany({ where: { meetingId } });
+        }
+        for (const orgRef of orgRefs) {
+          const organizationId = await getOrganizationIdByRef(orgRef);
+          if (!organizationId) {
+            result.errors.push(
+              `[Meetings row ${i + 2}] organization not found (${orgRef})`
+            );
+            continue;
+          }
+          if (!dryRun) {
+            await prisma.meetingOrganization.upsert({
+              where: {
+                meetingId_organizationId: { meetingId, organizationId },
+              },
+              create: { meetingId, organizationId },
+              update: {},
+            });
+          }
+        }
       }
     }
   }

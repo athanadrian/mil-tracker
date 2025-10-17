@@ -11,6 +11,7 @@ import AppCrudMenu from './AppCrudMenu';
 import AppDialog from './AppDialog';
 import AppTextarea from './AppTextarea';
 import AppAlertDialog from './AppAlertDialog';
+import AppMultiSelectMini from './AppMultiSelectMini';
 
 export {
   AppIcon,
@@ -26,6 +27,7 @@ export {
   AppDialog,
   AppTextarea,
   AppAlertDialog,
+  AppMultiSelectMini,
 };
 
 export type { AppIconProps, IconLike } from './AppIcon';

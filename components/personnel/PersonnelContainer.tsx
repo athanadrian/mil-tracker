@@ -90,28 +90,52 @@ const PersonnelContainer = ({
     countryId: Array.isArray(initialFilters.countryId)
       ? initialFilters.countryId.join(',')
       : (initialFilters.countryId as any) || '',
+    // NEW: comma-separated ids για multi-select οργανισμών
+    organizationIds: Array.isArray((initialFilters as any).organizationId)
+      ? ((initialFilters as any).organizationId as string[]).join(',')
+      : ((initialFilters as any).organizationId as string) ?? '',
   }));
   const [pageIndex, setPageIndex] = useState(0);
   const [pageSize, setPageSize] = useState(10);
 
-  const { ranks, branches, countries } = selectOptions;
+  const {
+    ranks,
+    branches,
+    countries,
+    organizations = [],
+  } = selectOptions as any;
 
   const filteredRows = useMemo(() => {
+    const orgSet = new Set(
+      (filters.organizationIds || '')
+        .split(',')
+        .map((x) => x.trim())
+        .filter(Boolean)
+    );
+
     return rows.filter((p) => {
       if (!matchesQuery(p, filters.q)) return false;
 
       if (filters.personType && p.type !== filters.personType) return false;
       if (filters.serviceStatus && p.status !== filters.serviceStatus)
         return false;
-
       if (filters.rankId && p.rank?.id !== filters.rankId) return false;
       if (filters.countryId && p.country?.id !== filters.countryId)
         return false;
       if (filters.branchId && p.branch?.id !== filters.branchId) return false;
 
+      // NEW: φίλτρο οργανισμών (αν υπάρχει έστω ένα match σε installations)
+      if (orgSet.size) {
+        const hasOrg =
+          Array.isArray(p.installations) &&
+          p.installations.some(
+            (ins) => ins.organization && orgSet.has(ins.organization.id)
+          );
+        if (!hasOrg) return false;
+      }
+
       return true;
     });
-    // αν θες, βάλε dependency απλά [rows, filters]
   }, [
     rows,
     filters.q,
@@ -120,6 +144,7 @@ const PersonnelContainer = ({
     filters.rankId,
     filters.countryId,
     filters.branchId,
+    filters.organizationIds,
   ]);
 
   // reset when initial changes
@@ -159,6 +184,7 @@ const PersonnelContainer = ({
   }, [nextCursor, sortBy, sortDir, initialFilters]);
 
   // Filters schema for FiltersContainer
+
   const filtersSchema = useMemo(
     () => [
       {
@@ -202,9 +228,17 @@ const PersonnelContainer = ({
         options: countries,
         getLabel: (o: any) => (o?.label || o?.name) ?? '',
       },
+      {
+        key: 'organizationIds',
+        type: 'appmultiselect' as const,
+        placeholder: 'Οργανισμός',
+        options: organizations,
+        getLabel: (o: any) => (o?.label || o?.name) ?? '',
+      },
     ],
-    [ranks, branches, countries]
+    [ranks, branches, countries, organizations]
   );
+
   const paginationOptions = useMemo(
     () => paginationTypes.map((p) => ({ value: p.id, label: p.name })),
     []
@@ -318,6 +352,14 @@ const PersonnelContainer = ({
                       {initial.breakdown?.retired ?? 0}
                     </div>
                   </div>
+                  {/* <div className='rounded-md border bg-muted/30 px-3 py-2'>
+                    <div className='text-[11px] uppercase tracking-wide'>
+                      Έφεδροι
+                    </div>
+                    <div className='font-semibold'>
+                      {initial.breakdown?.reserved ?? 0}
+                    </div>
+                  </div> */}
                 </div>
               )}
 
@@ -357,8 +399,8 @@ const PersonnelContainer = ({
         schema={filtersSchema as any}
         filters={filters as any}
         onChange={(delta) => {
-          setFilters((f) => ({ ...f, ...delta })); // q/personType/serviceStatus
-          setPageIndex(0); // reset page όταν αλλάζει φίλτρο
+          setFilters((f) => ({ ...f, ...delta }));
+          setPageIndex(0);
         }}
         onClearAll={() => {
           setFilters({
@@ -368,6 +410,7 @@ const PersonnelContainer = ({
             rankId: '',
             countryId: '',
             branchId: '',
+            organizationIds: '', // NEW
           });
           setPageIndex(0);
         }}

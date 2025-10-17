@@ -1,4 +1,4 @@
-import ImportLookupsCard from './ImportContainer';
+import ImportContainer from './ImportContainer';
 import ExportContainer from './ExportContainer';
 
-export { ImportLookupsCard, ExportContainer };
+export { ImportContainer, ExportContainer };

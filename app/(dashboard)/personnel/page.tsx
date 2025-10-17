@@ -25,7 +25,12 @@ const PersonnelPage = async ({
       filters,
     }),
     getSelectOptionsCached({
-      include: { countries: true, branches: true, ranks: true },
+      include: {
+        countries: true,
+        branches: true,
+        ranks: true,
+        organizations: true,
+      },
     }),
   ]);
 

@@ -39,7 +39,17 @@ const PersonDetails: React.FC<Props> = ({ person }) => {
     setIdx((i) => (images.length ? (i + 1) % images.length : 0));
 
   const countryName = person?.country?.name ?? person?.country?.iso2 ?? '';
-  const flagSrc = person?.country?.flag ?? null; // file/URL/path που δίνεις από DB (με το electron handler σου)
+  const flagSrc = person?.country?.flag ?? null;
+
+  // helpers
+  const orgBadges =
+    person?.organizations && person.organizations.length > 0
+      ? person.organizations.map((o) => (
+          <Badge key={o.id} variant='outline' className='mr-1 mb-1'>
+            {o.name}
+          </Badge>
+        ))
+      : '—';
 
   return (
     <Card>
@@ -65,7 +75,7 @@ const PersonDetails: React.FC<Props> = ({ person }) => {
           </div>
 
           <div className='mt-1 flex flex-wrap items-center gap-3 text-sm text-muted-foreground'>
-            {/* Rank */}
+            {/* Rank / Branch */}
             {person?.rank?.name ? (
               <span>
                 <span className='font-medium'>{person.rank.name}</span>
@@ -105,12 +115,16 @@ const PersonDetails: React.FC<Props> = ({ person }) => {
               <span className='uppercase tracking-wide'>Κλάση</span>
               <div className='text-foreground'>{person?.classYear ?? '—'}</div>
             </div>
-            <div>
-              <span className='uppercase tracking-wide'>
-                Οργανισμός/Εταιρεία
-              </span>
+            <div className='col-span-3 md:col-span-2'>
+              <span className='uppercase tracking-wide'>Οργανισμοί</span>
+              <div className='mt-1 text-foreground flex flex-wrap'>
+                {orgBadges}
+              </div>
+            </div>
+            <div className='col-span-3 md:col-span-2'>
+              <span className='uppercase tracking-wide'>Εταιρεία</span>
               <div className='text-foreground'>
-                {person?.organization?.name ?? person?.company?.name ?? '—'}
+                {person?.company?.name ?? '—'}
               </div>
             </div>
           </div>
@@ -194,7 +208,7 @@ const PersonDetails: React.FC<Props> = ({ person }) => {
               <Badge variant='outline'>
                 {person.installations?.length ?? 0}{' '}
                 {person.installations?.length === 1
-                  ? 'ΤοποθέΤηση'
+                  ? 'Τοποθέτηση'
                   : 'Τοποθετήσεις'}
               </Badge>
             </div>
@@ -239,10 +253,9 @@ const PersonDetails: React.FC<Props> = ({ person }) => {
                             menuIcon={appIcons.menu}
                             showEdit
                             showDelete
-                            //onView?.(p)}
                             onEdit={() => {}}
                             onDelete={() => {
-                              /* άνοιξε dialog διαγραφής αν έχεις */
+                              /* dialog διαγραφής */
                             }}
                           />
                         </td>
@@ -302,10 +315,9 @@ const PersonDetails: React.FC<Props> = ({ person }) => {
                             menuIcon={appIcons.menu}
                             showEdit
                             showDelete
-                            //onView?.(p)}
                             onEdit={() => {}}
                             onDelete={() => {
-                              /* άνοιξε dialog διαγραφής αν έχεις */
+                              /* dialog διαγραφής */
                             }}
                           />
                         </td>
@@ -344,6 +356,7 @@ const PersonDetails: React.FC<Props> = ({ person }) => {
                       <th className='p-2'>Περίληψη</th>
                       <th className='p-2'>Τοποθεσία</th>
                       <th className='p-2'>Χώρα</th>
+                      <th className='p-2'>Οργανισμοί</th>
                       <th className='p-2'>Ρόλος (ως participant)</th>
                       <th className='p-2'>
                         <AppCrudMenu
@@ -400,6 +413,11 @@ const MeetingRow: React.FC<{
   const [open, setOpen] = React.useState(false);
   const hasTopics = (meeting.topics?.length ?? 0) > 0;
 
+  const orgNames =
+    meeting.organizations && meeting.organizations.length > 0
+      ? meeting.organizations.map((o) => o.name).join(', ')
+      : '—';
+
   return (
     <>
       <tr className='border-t'>
@@ -430,16 +448,16 @@ const MeetingRow: React.FC<{
         <td className='p-2'>{meeting.summary ?? '—'}</td>
         <td className='p-2'>{meeting.location ?? '—'}</td>
         <td className='p-2'>{meeting.country?.name ?? '—'}</td>
+        <td className='p-2'>{orgNames}</td>
         <td className='p-2'>{meeting.participantRole ?? '—'}</td>
         <td className='p-2'>
           <AppCrudMenu
             menuIcon={appIcons.menu}
             showEdit
             showDelete
-            //onView?.(p)}
             onEdit={() => {}}
             onDelete={() => {
-              /* άνοιξε dialog διαγραφής αν έχεις */
+              /* dialog διαγραφής */
             }}
           />
         </td>
@@ -448,7 +466,7 @@ const MeetingRow: React.FC<{
       {hasTopics && open && (
         <tr className='bg-muted/30'>
           <td className='p-2' />
-          <td className='p-2' colSpan={7}>
+          <td className='p-2' colSpan={8}>
             <div className='text-xs'>
               <div className='font-medium mb-1'>Θέματα:</div>
               <ul className='list-disc pl-5 space-y-0.5'>

@@ -107,10 +107,16 @@ export type MeetingMiniDTO = {
   location: string | null;
   summary: string | null;
   country: { id: string; name: string; flag?: string | null } | null;
-  organization: { id: string; name: string; code?: string | null } | null;
-  topics: { id: string; name: string }[]; // μόνο ονόματα, κράτα το λιτό
-  participantRole: string | null; // ο ρόλος του συγκεκριμένου person
-  participantDescription: string | null; // τυχόν σημειώσεις του participant
+
+  /**
+   * Πολλοί οργανισμοί ανά meeting (μετά τη μετοίκηση σε MeetingOrganization).
+   * Αν χρειάζεσαι “κύριο” org στο UI, πάρε organizations[0] ως primary.
+   */
+  organizations: { id: string; name: string; code?: string | null }[];
+
+  topics: { id: string; name: string }[]; // μόνο ονόματα
+  participantRole: string | null; // ρόλος του συγκεκριμένου person
+  participantDescription: string | null; // σημειώσεις του participant
 };
 
 export type PersonDetailDTO = {
@@ -133,13 +139,22 @@ export type PersonDetailDTO = {
   country: {
     id: string;
     name: string;
-    iso2?: string | null; // <-- επιτρέπει null
+    iso2?: string | null;
     flag?: string | null;
   } | null;
+
   branch: { id: string; name: string; code?: string | null } | null;
+
   rank: { id: string; name: string; code?: string | null; tier: string } | null;
+
   specialty: { id: string; name: string; code?: string | null } | null;
-  organization: { id: string; name: string; code?: string | null } | null;
+
+  /**
+   * Πλέον ο Person συνδέεται σε πολλούς οργανισμούς μέσω PersonOrganization.
+   * (Αν θέλεις backward-compat: μπορείς να εκθέτεις και primaryOrganization από organizations[0])
+   */
+  organizations: { id: string; name: string; code?: string | null }[];
+
   company: { id: string; name: string } | null;
 
   meetingsCount: number;
@@ -239,7 +254,7 @@ export const getPersonnelData = async ({
   // Safety caps
   take = Math.min(200, Math.max(1, take));
 
-  // Normalize filters (allow array or single)
+  // Normalize filters
   const norm = <T>(val?: T | T[]): T[] =>
     Array.isArray(val) ? val : val ? [val] : [];
 
@@ -247,9 +262,11 @@ export const getPersonnelData = async ({
   const countryIds = norm(filters.countryId);
   const statuses = norm(filters.status);
   const types = norm(filters.type);
+  // Optional: υποστήριξη φίλτρου organizationId (αν το χρειαστείς αργότερα)
+  const organizationIds = norm((filters as any).organizationId);
 
   const q = (filters.q || '').trim();
-  const txt = { contains: q }; // SQLite: χωρίς mode
+  const txt = { contains: q }; // SQLite: case-insensitive-like
   const maybeYear = /^\d{4}$/.test(q) ? Number(q) : null;
 
   const startOfYear = (y: number) => new Date(y, 0, 1);
@@ -259,18 +276,29 @@ export const getPersonnelData = async ({
     ...(q
       ? {
           OR: [
-            // Person text fields
+            // Person text
             { firstName: txt },
             { lastName: txt },
             { nickname: txt },
 
-            // current person relations (χρησιμοποίησε relation where)
+            // Current direct relations
             { rank: { is: { name: txt } } },
             { rank: { is: { code: txt } } },
             { branch: { is: { name: txt } } },
             { country: { is: { name: txt } } },
 
-            // PROMOTIONS
+            // 🔁 ΝΕΟ: αναζήτηση μέσω PersonOrganization (M:N)
+            {
+              personOrganizations: {
+                some: {
+                  organization: {
+                    OR: [{ name: txt }, { code: txt }],
+                  },
+                },
+              },
+            },
+
+            // Promotions
             {
               promotions: {
                 some: {
@@ -283,7 +311,7 @@ export const getPersonnelData = async ({
               },
             },
 
-            // INSTALLATIONS / POSTINGS
+            // Installations / Postings (μένει ως είχε)
             {
               postings: {
                 some: {
@@ -320,7 +348,7 @@ export const getPersonnelData = async ({
               },
             },
 
-            // retiredAt στο ίδιο έτος (optional)
+            // retiredAt στο ίδιο έτος
             ...(maybeYear
               ? [
                   {
@@ -335,11 +363,20 @@ export const getPersonnelData = async ({
         }
       : {}),
 
-    // υπόλοιπα filters
+    // λοιπά filters
     ...(branchIds.length ? { branchId: { in: branchIds } } : {}),
     ...(countryIds.length ? { countryId: { in: countryIds } } : {}),
     ...(statuses.length ? { status: { in: statuses } } : {}),
     ...(types.length ? { type: { in: types } } : {}),
+
+    // προαιρετικό: φίλτρο οργανισμού μέσω join (αν το στείλεις)
+    ...(organizationIds.length
+      ? {
+          personOrganizations: {
+            some: { organizationId: { in: organizationIds } },
+          },
+        }
+      : {}),
   };
 
   const orderBy = buildOrderBy(sortBy, sortDir);
@@ -366,12 +403,13 @@ export const getPersonnelData = async ({
         },
       },
       meetings: { select: { meetingId: true } },
+      // Αν χρειαστείς να προβάλλεις organizations του person στο list DTO:
+      // personOrganizations: { include: { organization: true } },
     },
   });
 
   const nextCursor = items.length === take ? items[items.length - 1].id : null;
 
-  // Map to DTOs
   const dtoItems: PersonDTO[] = items.map((p) => {
     const retiredYear =
       p.status === 'RETIRED' && p.retiredAt
@@ -503,7 +541,17 @@ export const getPersonDetailById = async (
       branch: { select: { id: true, name: true, code: true } },
       rank: { select: { id: true, name: true, code: true, tier: true } },
       specialty: { select: { id: true, name: true, code: true } },
-      organization: { select: { id: true, name: true, code: true } },
+
+      // ❌ Παλιά (δεν υπάρχει πια): organization
+      // organization: { select: { id: true, name: true, code: true } },
+
+      // ✅ Νέο: πολλαπλοί οργανισμοί μέσω join
+      personOrganizations: {
+        include: {
+          organization: { select: { id: true, name: true, code: true } },
+        },
+      },
+
       company: { select: { id: true, name: true } },
       promotions: {
         select: {
@@ -524,7 +572,7 @@ export const getPersonDetailById = async (
       postings: {
         include: {
           unit: { select: { id: true, name: true, code: true, type: true } },
-          organization: { select: { id: true, name: true, code: true } },
+          organization: { select: { id: true, name: true, code: true } }, // παραμένει για ιστορικές τοποθετήσεις
           country: { select: { id: true, name: true, iso2: true, flag: true } },
           position: { select: { id: true, name: true, code: true } },
           rankAtTime: {
@@ -533,6 +581,8 @@ export const getPersonDetailById = async (
         },
         orderBy: [{ startDate: 'desc' }],
       },
+
+      // ✅ Meetings: φέρνουμε και τα organizations μέσω join table
       meetings: {
         select: {
           role: true,
@@ -545,8 +595,18 @@ export const getPersonDetailById = async (
               location: true,
               summary: true,
               country: { select: { id: true, name: true, flag: true } },
-              organization: { select: { id: true, name: true, code: true } },
-              topics: { select: { id: true, name: true } }, // λίστα θεμάτων
+              // παλιό: organization (single) — έχει φύγει στο νέο schema
+              // organization: { select: { id: true, name: true, code: true } },
+
+              // νέο: πολλές σχέσεις μέσω MeetingOrganization
+              organizations: {
+                select: {
+                  organization: {
+                    select: { id: true, name: true, code: true },
+                  },
+                },
+              },
+              topics: { select: { id: true, name: true } },
             },
           },
         },
@@ -625,8 +685,16 @@ export const getPersonDetailById = async (
     ? promotions[promotions.length - 1].rank
     : null;
 
+  // ✅ meetings με πολλαπλούς οργανισμούς
   const meetings: MeetingMiniDTO[] = (p.meetings || []).map((mp) => {
     const m = mp.meeting!;
+    const orgs =
+      (m.organizations || []).map((mo) => ({
+        id: mo.organization.id,
+        name: mo.organization.name,
+        code: mo.organization.code ?? undefined,
+      })) ?? [];
+
     return {
       id: m.id,
       code: m.code ?? null,
@@ -640,20 +708,25 @@ export const getPersonDetailById = async (
             flag: m.country.flag ?? null,
           }
         : null,
-      organization: m.organization
-        ? {
-            id: m.organization.id,
-            name: m.organization.name,
-            code: m.organization.code ?? undefined,
-          }
-        : null,
+      // παλιό single organization: αφαιρέθηκε
+      // organization: ...
+
+      organizations: orgs, // ✅ νέο πεδίο στη mini DTO
       topics: (m.topics || []).map((t) => ({ id: t.id, name: t.name })),
       participantRole: mp.role ?? null,
       participantDescription: mp.description ?? null,
     };
   });
 
-  const latestInstallation = installations[0] ?? null; // because postings ordered desc
+  const latestInstallation = installations[0] ?? null;
+
+  // ✅ organizations του person από το M:N
+  const personOrganizations =
+    p.personOrganizations?.map((po) => ({
+      id: po.organization.id,
+      name: po.organization.name,
+      code: po.organization.code ?? undefined,
+    })) ?? [];
 
   const detail: PersonDetailDTO = {
     id: p.id,
@@ -696,17 +769,17 @@ export const getPersonDetailById = async (
     specialty: p.specialty
       ? { id: p.specialty.id, name: p.specialty.name, code: p.specialty.code }
       : null,
-    organization: p.organization
-      ? {
-          id: p.organization.id,
-          name: p.organization.name,
-          code: p.organization.code,
-        }
-      : null,
+
+    // ❌ παλιό single
+    // organization: null,
+
+    // ✅ νέο: πολλαπλοί οργανισμοί στον άνθρωπο
+    organizations: personOrganizations,
+
     company: p.company ? { id: p.company.id, name: p.company.name } : null,
     meetingsCount: p.meetings.length,
     hasMeetings: p.meetings.length > 0,
-    meetings,
+    meetings, // με organizations[]
     latestInstallation,
     installations,
     promotions,
