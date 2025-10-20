@@ -5,6 +5,7 @@ import type { ReadonlyURLSearchParams } from 'next/navigation';
 import { Prisma, ServiceStatus, PersonType } from '@prisma/client';
 import { getEntityName, type EntityKey } from '@/actions/common.actions';
 import { PersonFilters } from '@/types/person';
+import { OptionIVL } from '@/types/common';
 
 export const cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs));
 
@@ -329,4 +330,14 @@ export function formatDateISOToDDMMYYYY(iso: string, locale = 'el-GR') {
     year: 'numeric',
     timeZone: 'UTC',
   }).format(new Date(iso));
+}
+
+// build label for constants/categories
+export function buildLabelMap<V extends string>(
+  options: ReadonlyArray<OptionIVL<V>>
+): Record<V, string> {
+  return options.reduce((acc, o) => {
+    acc[o.value] = o.label;
+    return acc;
+  }, {} as Record<V, string>);
 }

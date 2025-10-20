@@ -1,6 +1,10 @@
 import { AiOutlineClose } from 'react-icons/ai';
 import { FaSitemap, FaTools, FaList } from 'react-icons/fa';
-import { FaPersonMilitaryRifle } from 'react-icons/fa6';
+import {
+  FaPersonMilitaryRifle,
+  FaArrowLeft,
+  FaArrowRight,
+} from 'react-icons/fa6';
 import {
   MdFireplace,
   MdDashboard,
@@ -119,6 +123,9 @@ export const appIcons = {
   chevronUp: FiChevronUp,
   chevronLeft: FiChevronLeft,
   chevronRight: FiChevronRight,
+
+  active: FaArrowRight,
+  retired: FaArrowLeft,
 
   table: VscTable,
   cards: PiCreditCardLight,

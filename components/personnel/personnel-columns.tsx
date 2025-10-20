@@ -326,6 +326,23 @@ export function makePersonnelColumns(opts?: {
                 icon: <AppIcon icon={appIcons.add} />,
                 onAction: () => {},
               },
+              {
+                key: `add-${p.status === 'ACTIVE' ? 'retirement' : 'active'}`,
+                label: `${
+                  p.status === 'ACTIVE' ? 'Αποστράτευση' : 'Εν Ενεργεία'
+                }`,
+                icon: (
+                  <AppIcon
+                    icon={
+                      p.status === 'ACTIVE' ? appIcons.retired : appIcons.active
+                    }
+                    className={`${
+                      p.status === 'ACTIVE' ? 'text-rose-500' : 'text-teal-500'
+                    }`}
+                  />
+                ),
+                onAction: () => {},
+              },
             ]}
           />
         );

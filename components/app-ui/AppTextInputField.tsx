@@ -1,3 +1,4 @@
+// AppTextInputField.tsx
 'use client';
 
 import * as React from 'react';
@@ -10,13 +11,9 @@ import type {
 import { Input } from '@/components/ui/input';
 import { AppErrorMessage } from '@/components/app-ui';
 
-export type AppTextInputFieldProps<
-  TFieldValues extends FieldValues = FieldValues
-> = {
+// --- κοινοί props ---
+type CommonProps = {
   label: React.ReactNode;
-  name: FieldPath<TFieldValues>;
-  register: UseFormRegister<TFieldValues>;
-  error?: string | FieldError;
   required?: boolean | string;
   id?: string;
   type?: React.HTMLInputTypeAttribute;
@@ -26,20 +23,51 @@ export type AppTextInputFieldProps<
   'name' | 'type' | 'id' | 'placeholder'
 >;
 
-const AppTextInputField = <TFieldValues extends FieldValues = FieldValues>({
-  label,
-  name,
-  type = 'text',
-  placeholder = '',
-  id,
-  register,
-  required = false,
-  error,
-  className,
-  ...restProps
-}: AppTextInputFieldProps<TFieldValues>) => {
+// --- έκδοση με RHF ---
+type RhfProps<TFieldValues extends FieldValues> = {
+  name: FieldPath<TFieldValues>;
+  register: UseFormRegister<TFieldValues>;
+  error?: string | FieldError;
+};
+
+// --- controlled έκδοση (χωρίς RHF) ---
+type ControlledProps = {
+  name: string;
+  register?: never;
+  error?: string; // εδώ περνάς απλό string αν θέλεις
+};
+
+export type AppTextInputFieldProps<
+  TFieldValues extends FieldValues = FieldValues
+> = CommonProps & (RhfProps<TFieldValues> | ControlledProps);
+
+const AppTextInputField = <TFieldValues extends FieldValues = FieldValues>(
+  props: AppTextInputFieldProps<TFieldValues>
+) => {
+  const {
+    label,
+    type = 'text',
+    placeholder = '',
+    required = false,
+    className,
+    id,
+    error,
+    ...rest
+  } = props as any;
+
+  const name: string = (props as any).name;
   const inputId = id || name;
-  const errorText = typeof error === 'string' ? error : error?.message;
+
+  const errorText =
+    typeof error === 'string'
+      ? error
+      : (error as FieldError | undefined)?.message;
+
+  // Αν υπάρχει register => RHF mode
+  const rhfMode = 'register' in props && typeof props.register === 'function';
+  const rhfRegisterProps = rhfMode
+    ? props.register((props as RhfProps<TFieldValues>).name, { required })
+    : {};
 
   return (
     <div className={['space-y-2', className].filter(Boolean).join(' ')}>
@@ -52,13 +80,16 @@ const AppTextInputField = <TFieldValues extends FieldValues = FieldValues>({
 
       <Input
         id={inputId}
+        name={name}
         type={type}
         placeholder={placeholder}
-        {...register(name, { required })}
-        {...restProps}
+        // RHF props μόνο όταν είμαστε σε RHF mode
+        {...(rhfMode ? rhfRegisterProps : {})}
+        // controlled props (value/onChange κ.λπ.) όταν ΔΕΝ είμαστε σε RHF mode
+        {...(!rhfMode ? rest : {})}
       />
 
-      {errorText && <AppErrorMessage message={errorText} />}
+      {errorText ? <AppErrorMessage message={errorText} /> : null}
     </div>
   );
 };

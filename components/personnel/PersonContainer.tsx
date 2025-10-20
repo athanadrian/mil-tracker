@@ -49,6 +49,29 @@ const PersonContainer = ({
               icon: <AppIcon icon={appIcons.add} />,
               onAction: () => {},
             },
+            {
+              key: `add-${
+                person.status === 'ACTIVE' ? 'retirement' : 'active'
+              }`,
+              label: `${
+                person.status === 'ACTIVE' ? 'Αποστράτευση' : 'Εν Ενεργεία'
+              }`,
+              icon: (
+                <AppIcon
+                  icon={
+                    person.status === 'ACTIVE'
+                      ? appIcons.retired
+                      : appIcons.active
+                  }
+                  className={`${
+                    person.status === 'ACTIVE'
+                      ? 'text-rose-500'
+                      : 'text-teal-500'
+                  }`}
+                />
+              ),
+              onAction: () => {},
+            },
           ]}
         />
       </AppPageTitle>

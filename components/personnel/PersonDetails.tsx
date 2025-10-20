@@ -234,41 +234,44 @@ const PersonDetails: React.FC<Props> = ({ person }) => {
                     </th>
                   </tr>
                 </thead>
-                {person.installations?.length ? (
-                  <tbody>
-                    {person.installations.map((ins, i) => (
-                      <tr key={i} className='border-t'>
-                        <td className='p-2'>
-                          {ins.unit?.name ?? ins.organization?.name ?? '—'}
-                        </td>
-                        <td className='p-2'>{ins.role ?? '—'}</td>
-                        <td className='p-2'>
-                          {formatDateISOToDDMMYYYY(ins.startDate as any)}
-                        </td>
-                        <td className='p-2'>
-                          {formatDateISOToDDMMYYYY(ins.endDate as any)}
-                        </td>
-                        <td className='p-2 text-right'>
-                          <AppCrudMenu
-                            menuIcon={appIcons.menu}
-                            showEdit
-                            showDelete
-                            onEdit={() => {}}
-                            onDelete={() => {
-                              /* dialog διαγραφής */
-                            }}
-                          />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                ) : (
-                  <tr className='p-3 text-sm text-muted-foreground'>
-                    <td className='p-2 text-center' colSpan={8}>
-                      Δεν υπάρχουν καταγεγραμμένες τοποθετήσεις
-                    </td>
-                  </tr>
-                )}
+
+                <tbody>
+                  {person.installations?.length ? (
+                    <>
+                      {person.installations.map((ins, i) => (
+                        <tr key={i} className='border-t'>
+                          <td className='p-2'>
+                            {ins.unit?.name ?? ins.organization?.name ?? '—'}
+                          </td>
+                          <td className='p-2'>{ins.role ?? '—'}</td>
+                          <td className='p-2'>
+                            {formatDateISOToDDMMYYYY(ins.startDate as any)}
+                          </td>
+                          <td className='p-2'>
+                            {formatDateISOToDDMMYYYY(ins.endDate as any)}
+                          </td>
+                          <td className='p-2 text-right'>
+                            <AppCrudMenu
+                              menuIcon={appIcons.menu}
+                              showEdit
+                              showDelete
+                              onEdit={() => {}}
+                              onDelete={() => {
+                                /* dialog διαγραφής */
+                              }}
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    </>
+                  ) : (
+                    <tr className='p-3 text-sm text-muted-foreground'>
+                      <td className='p-2 text-center' colSpan={8}>
+                        Δεν υπάρχουν καταγεγραμμένες τοποθετήσεις
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
               </table>
             </div>
           </section>
@@ -305,34 +308,37 @@ const PersonDetails: React.FC<Props> = ({ person }) => {
                     </th>
                   </tr>
                 </thead>
-                {person.promotions?.length ? (
-                  <tbody>
-                    {person.promotions.map((p, i) => (
-                      <tr key={i} className='border-t'>
-                        <td className='p-2'>{p.promotionYear ?? '—'}</td>
-                        <td className='p-2'>{p.rank?.name ?? '—'}</td>
-                        <td className='p-2'>{p.description ?? '—'}</td>
-                        <td className='p-2 text-right'>
-                          <AppCrudMenu
-                            menuIcon={appIcons.menu}
-                            showEdit
-                            showDelete
-                            onEdit={() => {}}
-                            onDelete={() => {
-                              /* dialog διαγραφής */
-                            }}
-                          />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                ) : (
-                  <tr className='p-3 text-sm text-muted-foreground'>
-                    <td className='p-2 text-center' colSpan={8}>
-                      Δεν υπάρχουν καταγεγραμμένες προαγωγές
-                    </td>
-                  </tr>
-                )}
+
+                <tbody>
+                  {person.promotions?.length ? (
+                    <>
+                      {person.promotions.map((p, i) => (
+                        <tr key={i} className='border-t'>
+                          <td className='p-2'>{p.promotionYear ?? '—'}</td>
+                          <td className='p-2'>{p.rank?.name ?? '—'}</td>
+                          <td className='p-2'>{p.description ?? '—'}</td>
+                          <td className='p-2 text-right'>
+                            <AppCrudMenu
+                              menuIcon={appIcons.menu}
+                              showEdit
+                              showDelete
+                              onEdit={() => {}}
+                              onDelete={() => {
+                                /* dialog διαγραφής */
+                              }}
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    </>
+                  ) : (
+                    <tr className='p-3 text-sm text-muted-foreground'>
+                      <td className='p-2 text-center' colSpan={8}>
+                        Δεν υπάρχουν καταγεγραμμένες προαγωγές
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
               </table>
             </div>
           </section>
@@ -375,19 +381,21 @@ const PersonDetails: React.FC<Props> = ({ person }) => {
                     </th>
                   </tr>
                 </thead>
-                {person.meetings?.length ? (
-                  <tbody>
-                    {person.meetings.map((m, i) => (
-                      <MeetingRow key={m.id} idx={i} meeting={m} />
-                    ))}
-                  </tbody>
-                ) : (
-                  <tr className='p-3 text-sm text-muted-foreground'>
-                    <td className='p-2 text-center' colSpan={8}>
-                      Δεν υπάρχουν καταγεγραμμένες συναντήσεις
-                    </td>
-                  </tr>
-                )}
+                <tbody>
+                  {person.meetings?.length ? (
+                    <>
+                      {person.meetings.map((m, i) => (
+                        <MeetingRow key={m.id} idx={i} meeting={m} />
+                      ))}
+                    </>
+                  ) : (
+                    <tr className='p-3 text-sm text-muted-foreground'>
+                      <td className='p-2 text-center' colSpan={8}>
+                        Δεν υπάρχουν καταγεγραμμένες συναντήσεις
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
               </table>
             </div>
           </section>

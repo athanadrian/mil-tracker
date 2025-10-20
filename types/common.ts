@@ -7,3 +7,11 @@ export type ImagePathsJSON = {
     addedAt?: string; // ISO
   };
 };
+
+export type Option = { id: string; label: string } & Record<string, string>;
+
+export type OptionIVL<T extends string = string> = {
+  id: T;
+  value: T;
+  label: string;
+};

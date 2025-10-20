@@ -1,3 +1,4 @@
+// AppSelect.tsx
 'use client';
 
 import * as React from 'react';
@@ -13,27 +14,28 @@ import type { IconLike } from '.';
 
 type SimpleFieldError = { message?: string } | string;
 type ErrorsMap = Record<string, SimpleFieldError | undefined>;
-
 const toStr = (v: unknown): string => (v == null ? '' : String(v));
 
-export type AppSelectProps<TOption = any> = {
+// sentinel για “Προσθήκη νέου…”
+const ADD_TOKEN = '__APPSELECT_ADD__';
+
+export type AppSelectProps<
+  TOption = any,
+  TFieldName extends string = string
+> = {
   label?: React.ReactNode;
-  /** Όνομα πεδίου (αν δουλεύεις με RHF getValues/setValue) */
-  name?: string;
+  name?: TFieldName;
   options?: readonly TOption[];
 
-  /** Αν θες να “πορτάρεις” το dropdown αλλού (Radix Portal container) */
   portalContainer?: HTMLElement | null;
 
-  /** Controlled value (string/number) */
   value?: string | number | null;
   onChange?: (val: string) => void;
 
-  /** RHF-like helpers (προαιρετικά) */
-  getValues?: (name: string) => unknown;
+  getValues?: (name: TFieldName) => unknown;
   setValue?: (
-    name: string,
-    val: string,
+    name: TFieldName,
+    val: any,
     opts?: { shouldValidate?: boolean }
   ) => void;
   errors?: ErrorsMap;
@@ -43,22 +45,18 @@ export type AppSelectProps<TOption = any> = {
   showSelect?: boolean;
   className?: string;
 
-  /** Πώς παράγεται το text label κάθε option */
   getLabel?: (item: TOption) => React.ReactNode;
-  /** Πώς παράγεται η τιμή (value) κάθε option */
   getOptionValue?: (item: TOption) => string | number;
 
-  /** Custom renderers */
   renderOption?: (item: TOption) => React.ReactNode;
   renderTriggerValue?: (item: TOption) => React.ReactNode;
 
-  /** “Προσθήκη νέου …” */
   onAdd?: () => void;
   addLabel?: React.ReactNode;
   addIcon?: IconLike | React.ReactElement;
 };
 
-function AppSelect<TOption = any>({
+function AppSelect<TOption = any, TFieldName extends string = string>({
   label,
   name,
   options = [],
@@ -80,10 +78,9 @@ function AppSelect<TOption = any>({
   onAdd,
   addLabel,
   addIcon,
-}: AppSelectProps<TOption>): React.JSX.Element | null {
+}: AppSelectProps<TOption, TFieldName>): React.JSX.Element | null {
   const [open, setOpen] = React.useState(false);
 
-  // Επιλεγμένη τιμή (προτεραιότητα σε RHF getValues αν δώσεις name)
   const selectedRaw =
     typeof getValues === 'function' && name ? getValues(name) : value;
   const selectedValue = toStr(selectedRaw);
@@ -97,13 +94,24 @@ function AppSelect<TOption = any>({
     [options, selectedValue]
   );
 
-  const handleChange = (val: string) => {
+  const applyChange = (val: string) => {
     if (typeof setValue === 'function' && name) {
       setValue(name, val, { shouldValidate: true });
     } else if (typeof onChange === 'function') {
       onChange(val);
     }
     setOpen(false);
+  };
+
+  // Τυλίγουμε το onValueChange ώστε να πιάσουμε το ADD_TOKEN
+  const handleValueChange = (val: string) => {
+    if (onAdd && val === ADD_TOKEN) {
+      setOpen(false);
+      // δώσε χρόνο να κλείσει το dropdown πριν ανοίξεις άλλο dialog
+      requestAnimationFrame(() => onAdd());
+      return;
+    }
+    applyChange(val);
   };
 
   const triggerContent = React.useMemo(() => {
@@ -117,14 +125,12 @@ function AppSelect<TOption = any>({
   if (!showSelect) return null;
 
   const errorMessage =
-    name && errors?.[name]
-      ? typeof errors[name] === 'string'
-        ? (errors[name] as string)
-        : (errors[name] as { message?: string })?.message ?? ''
+    name && errors?.[name as string]
+      ? typeof errors[name as string] === 'string'
+        ? (errors[name as string] as string)
+        : (errors[name as string] as { message?: string })?.message ?? ''
       : '';
 
-  // Το shadcn SelectContent μπορεί να μην έχει "container" type.
-  // Το περνάμε conditionally για να αποφύγουμε TS error.
   const contentProps = portalContainer ? { container: portalContainer } : {};
 
   return (
@@ -135,7 +141,7 @@ function AppSelect<TOption = any>({
         open={open}
         onOpenChange={setOpen}
         value={selectedValue}
-        onValueChange={handleChange}
+        onValueChange={handleValueChange}
         disabled={disabled}
       >
         <SelectTrigger>
@@ -165,23 +171,14 @@ function AppSelect<TOption = any>({
           })}
 
           {typeof onAdd === 'function' && (
-            <div
-              role='button'
-              tabIndex={0}
-              className='mt-1 border-t pt-2 px-3 text-sm cursor-pointer hover:bg-muted flex items-center gap-2'
-              onClick={(e) => {
-                e.preventDefault();
-                setOpen(false);
-                requestAnimationFrame(() => {
-                  const ae = document.activeElement;
-                  if (ae instanceof HTMLElement) ae.blur();
-                  onAdd();
-                });
-              }}
-            >
-              {addIcon ? <AppIcon icon={addIcon} /> : <span>+</span>}
-              <span>{addLabel || 'Προσθήκη νέου...'}</span>
-            </div>
+            <SelectItem value={ADD_TOKEN}>
+              <div className='flex items-center gap-2'>
+                {addIcon ? <AppIcon icon={addIcon} /> : <span>+</span>}
+                <span className='opacity-80'>
+                  {addLabel || 'Προσθήκη νέου...'}
+                </span>
+              </div>
+            </SelectItem>
           )}
         </SelectContent>
       </Select>

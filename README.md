@@ -177,3 +177,8 @@ git push origin main --force
 
 git push origin backup/main-YYYYMMDD-HHMMSS:main --force
 ```
+
+```bash
+επαναφορά στο commit που θέλω
+git reset --hard {commitID}
+```
