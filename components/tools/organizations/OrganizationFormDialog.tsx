@@ -99,11 +99,20 @@ const OrganizationFormDialog = ({
     },
   });
 
+  const handleParentOpenChange = React.useCallback(
+    (v: boolean) => {
+      // Αν είναι ανοιχτό το Quick, ΜΗΝ κλείνεις το parent
+      if (openQuick && v === false) return;
+      onOpenChange(v);
+    },
+    [openQuick, onOpenChange]
+  );
+
   // όταν ολοκληρώνεται η δημιουργία, ανανέωσε options & preselect
   const handleQuickCreated = (newOrg: { id: string; name: string }) => {
     setOrgOptions((prev) => [{ id: newOrg.id, label: newOrg.name }, ...prev]);
     setValue('parentId', newOrg.id, { shouldValidate: true });
-    setOpenQuick(false);
+    //setOpenQuick(false);
   };
 
   // ---- Multi-country (UI-only state) ----
@@ -175,9 +184,19 @@ const OrganizationFormDialog = ({
     <>
       <AppDialog
         open={open}
-        onOpenChange={onOpenChange}
+        onOpenChange={handleParentOpenChange}
         title={title}
         description='Συμπλήρωσε τα στοιχεία του οργανισμού.'
+        contentProps={
+          openQuick
+            ? {
+                onInteractOutside: (e) => e.preventDefault(),
+                onPointerDownOutside: (e) => e.preventDefault(),
+                onEscapeKeyDown: (e) => e.preventDefault(),
+                onCloseAutoFocus: (e) => e.preventDefault(), // <-- προαιρετικά
+              }
+            : undefined
+        }
         footer={
           <div className='flex gap-2 justify-end'>
             <Button variant='outline' onClick={() => onOpenChange(false)}>
@@ -266,8 +285,11 @@ const OrganizationFormDialog = ({
               getValues={getValues}
               setValue={setValue as any}
               errors={errors as any}
-              getLabel={(t: any) => t.label}
-              onAdd={() => setOpenQuick(true)}
+              getLabel={(t: any) => t.label || t.name}
+              onAdd={() => {
+                // ή setTimeout 0, ή requestAnimationFrame
+                setTimeout(() => setOpenQuick(true), 0);
+              }}
               addLabel='Νέος οργανισμός'
               addIcon={appIcons.add}
             />

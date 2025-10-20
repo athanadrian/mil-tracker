@@ -19,6 +19,17 @@ type AppDialogProps = {
   footer?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
+  modal?: boolean;
+  rootProps?: Omit<
+    React.ComponentPropsWithoutRef<typeof Dialog>,
+    'open' | 'onOpenChange' | 'modal' | 'children'
+  >;
+
+  /** Extra props που θα “περαστούν” στο <DialogContent /> */
+  contentProps?: Omit<
+    React.ComponentPropsWithoutRef<typeof DialogContent>,
+    'className' | 'children'
+  >;
 };
 
 const AppDialog = ({
@@ -29,10 +40,18 @@ const AppDialog = ({
   footer,
   children,
   className,
+  modal = true,
+  rootProps,
+  contentProps,
 }: AppDialogProps) => {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={className}>
+    <Dialog
+      open={open}
+      onOpenChange={onOpenChange}
+      modal={modal}
+      {...rootProps}
+    >
+      <DialogContent className={className} {...contentProps}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {description ? (
