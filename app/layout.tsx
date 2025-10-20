@@ -4,9 +4,14 @@ import { cookies } from 'next/headers';
 
 import { getSidebarCounts } from '@/actions/common.actions';
 import { Toaster } from '@/components/common';
-import { MainLayout } from '@/components/layout';
+import { AppSidebar, MainLayout, Navbar } from '@/components/layout';
+import dynamic from 'next/dynamic';
 import { ThemeProvider } from '@/providers/theme-provider';
+import { SidebarProvider } from '@/components/ui/sidebar';
+import { AppDataProvider } from '@/providers/AdminDataProvider';
+import { AdminCounts } from '@/types/nav';
 import './globals.css';
+import InsetWithOffset from '@/components/layout/InsetWithOffset';
 
 export const metadata = { title: 'Military Asset Tracker' };
 
@@ -45,11 +50,22 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
         >
           {/* <AppDataProvider initial={initial}>
             <SidebarProvider defaultOpen={defaultOpen}> */}
-          <MainLayout
+          {/* <MainLayout
             children={children}
             initial={initial}
             defaultOpen={defaultOpen}
-          />
+          /> */}
+          <AppDataProvider initial={initial}>
+            <SidebarProvider defaultOpen={defaultOpen}>
+              <AppSidebar />
+              <main className='w-full'>
+                <InsetWithOffset>
+                  <Navbar />
+                  <div className='px-2 py-4'>{children}</div>
+                </InsetWithOffset>
+              </main>
+            </SidebarProvider>
+          </AppDataProvider>
           {/* </SidebarProvider>
           </AppDataProvider>*/}
         </ThemeProvider>

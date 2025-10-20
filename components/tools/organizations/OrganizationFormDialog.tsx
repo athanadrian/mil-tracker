@@ -162,7 +162,7 @@ const OrganizationFormDialog = ({
         }
         toast.success('Ο οργανισμός ενημερώθηκε');
       } else {
-        const res = await createOrganization(payload, finalPath);
+        const res = await createOrganization(payload);
         if (!res.ok) {
           toast.error(res.error ?? 'Σφάλμα δημιουργίας');
           return;
@@ -186,6 +186,7 @@ const OrganizationFormDialog = ({
         open={open}
         onOpenChange={handleParentOpenChange}
         title={title}
+        modal={!openQuick}
         description='Συμπλήρωσε τα στοιχεία του οργανισμού.'
         contentProps={
           openQuick
@@ -311,6 +312,7 @@ const OrganizationFormDialog = ({
         open={openQuick}
         onOpenChange={setOpenQuick}
         onCreated={handleQuickCreated}
+        finalPath={finalPath}
       />
     </>
   );

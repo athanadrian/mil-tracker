@@ -3,7 +3,7 @@
 import React from 'react';
 import { OrganizationDTO } from '@/types/tools/organization';
 import { Button } from '@/components/ui/button';
-import { AppIcon } from '@/components/app-ui';
+import { AppCrudMenu, AppIcon } from '@/components/app-ui';
 import { appIcons } from '@/constants/app-icons';
 import { ORG_TYPE_LABEL_MAP } from '@/constants/categories';
 
@@ -25,6 +25,7 @@ export const OrganizationsTable = ({
             <th className='p-2'>Κωδικός</th>
             <th className='p-2'>Τύπος</th>
             <th className='p-2'>Περιγραφή</th>
+            <th className='p-2'>Ανήκει</th>
             <th className='p-2'>Ενέργειες</th>
           </tr>
         </thead>
@@ -42,24 +43,23 @@ export const OrganizationsTable = ({
               <td className='p-2'>{r.code ?? '-'}</td>
               <td className='p-2'>{ORG_TYPE_LABEL_MAP[r.type]}</td>
               <td className='p-2'>{r.description ?? '-'}</td>
+              <td className='p-2'>{r.parent?.name ?? '-'}</td>
               <td className='p-2'>
                 <div className='flex gap-2'>
-                  <Button
-                    size='sm'
-                    variant='ghost'
-                    onClick={() => onEdit(r)}
-                    title='Επεξεργασία'
-                  >
-                    <AppIcon icon={appIcons.edit} />
-                  </Button>
-                  <Button
-                    size='sm'
-                    variant='ghost'
-                    onClick={() => onDelete(r)}
-                    title='Διαγραφή'
-                  >
-                    <AppIcon icon={appIcons.delete} />
-                  </Button>
+                  <AppCrudMenu
+                    trigger={
+                      <button
+                        className='inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent'
+                        aria-label='Actions'
+                      >
+                        <AppIcon icon={appIcons.dots_menu} size={16} />
+                      </button>
+                    }
+                    showEdit={!!onEdit}
+                    showDelete={!!onDelete}
+                    onEdit={() => onEdit?.(r)}
+                    onDelete={() => onDelete(r)}
+                  />
                 </div>
               </td>
             </tr>

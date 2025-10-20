@@ -5,7 +5,10 @@ import type { Prisma } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 
 import { prisma } from '@/lib/db';
-import { revalidateSidebarCounts } from '@/actions/common.actions';
+import {
+  revalidateLookups,
+  revalidateSidebarCounts,
+} from '@/actions/common.actions';
 import {
   OrganizationInput,
   organizationSchema,
@@ -83,15 +86,17 @@ export async function getOrganizations(): Promise<OrganizationDTO[]> {
 type Ok<T> = { ok: true; data: T };
 type Err = { ok: false; error: string };
 
+// actions/tools/organization.actions.ts
+type CreateOrgOpts = { revalidate?: boolean };
+
 export async function createOrganization(
   input: OrganizationInput,
-  path?: string
+  opts?: CreateOrgOpts
 ): Promise<Ok<{ id: string; name: string }> | Err> {
   try {
     const data = organizationSchema.parse(input);
 
     const result = await prisma.$transaction(async (tx) => {
-      // 1) Φτιάξε ΠΑΝΤΑ χωρίς parentId
       const created = await tx.organization.create({
         data: {
           name: data.name.trim(),
@@ -99,25 +104,17 @@ export async function createOrganization(
           type: data.type,
           description: data.description ?? null,
           organizationImage: data.organizationImage ?? null,
-          // countryId: data.countryId ?? null, // αν θέλεις να το κρατήσεις
-          // parentId: ΜΗΝ το βάλεις εδώ
         },
         select: { id: true, name: true },
       });
 
-      // 2) Αν έχεις parentId, βεβαιώσου ότι υπάρχει και κάνε update
       if (data.parentId) {
         const parent = await tx.organization.findUnique({
           where: { id: data.parentId },
           select: { id: true },
         });
-        if (!parent) {
-          throw new Error('Ο επιλεγμένος parent οργανισμός δεν υπάρχει.');
-        }
-        if (parent.id === created.id) {
-          throw new Error(
-            'Ένας οργανισμός δεν μπορεί να είναι parent του εαυτού του.'
-          );
+        if (!parent || parent.id === created.id) {
+          throw new Error('Μη έγκυρος parent οργανισμός.');
         }
         await tx.organization.update({
           where: { id: created.id },
@@ -125,7 +122,6 @@ export async function createOrganization(
         });
       }
 
-      // 3) M2M χώρες
       if (data.countriesIds?.length) {
         await syncCountriesForOrgTx(tx, created.id, data.countriesIds);
       }
@@ -133,8 +129,11 @@ export async function createOrganization(
       return created;
     });
 
-    if (path) revalidatePath(path, 'page');
-    await revalidateSidebarCounts().catch(() => {});
+    // ⬇️ Κάνε revalidate μόνο αν ΔΕΝ είμαστε σε quick flow
+    if (opts?.revalidate !== false) {
+      await revalidateLookups('organizations');
+      await revalidateSidebarCounts().catch(() => {});
+    }
 
     return { ok: true, data: result };
   } catch (err: any) {
