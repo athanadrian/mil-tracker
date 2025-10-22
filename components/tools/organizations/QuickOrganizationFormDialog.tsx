@@ -27,38 +27,6 @@ const QuickOrganizationFormDialog = ({
   const nameRef = React.useRef<HTMLInputElement>(null);
   const codeRef = React.useRef<HTMLInputElement>(null);
 
-  //   const save: React.FormEventHandler<HTMLFormElement> = async (e) => {
-  //     e.preventDefault();
-  //     e.stopPropagation();
-  //     if (!name.trim()) return;
-
-  //     setSaving(true);
-  //     try {
-  //       const res = await createOrganization({
-  //         name: name.trim(),
-  //         type,
-  //         countriesIds: [],
-  //       });
-
-  //       if (!res.ok) {
-  //         throw new Error(res.error ?? 'Αποτυχία δημιουργίας');
-  //       }
-
-  //       const { id, name: createdName } = res.data;
-  //       onCreated({ id, name: createdName });
-
-  //       // ✅ ΜΗΝ κλείνεις το dialog
-  //       // καθάρισε για επόμενη γρήγορη καταχώρηση
-  //       setName('');
-  //       // setType('OTHER'); // αν θέλεις reset και στο type
-  //       // queueMicrotask(() => nameRef.current?.focus());
-  //     } catch (err: any) {
-  //       // toast.error(err?.message ?? 'Κάτι πήγε στραβά');
-  //     } finally {
-  //       setSaving(false);
-  //     }
-  //   };
-
   const save: React.FormEventHandler<HTMLFormElement> = async (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -96,13 +64,13 @@ const QuickOrganizationFormDialog = ({
       }}
       modal={true}
       // Δώσε z-index > του parent (πχ ο shadcn DialogContent είναι z-50)
-      contentProps={{
-        onOpenAutoFocus: (e) => e.preventDefault(), // μην κλέβει focus στο open
-        onCloseAutoFocus: (e) => e.preventDefault(), // ΜΗΝ επιστρέφει focus στον parent στο close/submit
-        onPointerDownOutside: (e) => e.preventDefault(),
-        onInteractOutside: (e) => e.preventDefault(),
-        onEscapeKeyDown: (e) => e.preventDefault(),
-      }}
+      // contentProps={{
+      //   onOpenAutoFocus: (e) => e.preventDefault(), // μην κλέβει focus στο open
+      //   onCloseAutoFocus: (e) => e.preventDefault(), // ΜΗΝ επιστρέφει focus στον parent στο close/submit
+      //   onPointerDownOutside: (e) => e.preventDefault(),
+      //   onInteractOutside: (e) => e.preventDefault(),
+      //   onEscapeKeyDown: (e) => e.preventDefault(),
+      // }}
       title='Νέος οργανισμός'
       footer={
         <div className='flex gap-2 justify-end'>

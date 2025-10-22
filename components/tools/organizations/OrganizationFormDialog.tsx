@@ -188,16 +188,16 @@ const OrganizationFormDialog = ({
         title={title}
         modal={!openQuick}
         description='Συμπλήρωσε τα στοιχεία του οργανισμού.'
-        contentProps={
-          openQuick
-            ? {
-                onInteractOutside: (e) => e.preventDefault(),
-                onPointerDownOutside: (e) => e.preventDefault(),
-                onEscapeKeyDown: (e) => e.preventDefault(),
-                onCloseAutoFocus: (e) => e.preventDefault(), // <-- προαιρετικά
-              }
-            : undefined
-        }
+        // contentProps={
+        //   openQuick
+        //     ? {
+        //         onInteractOutside: (e) => e.preventDefault(),
+        //         onPointerDownOutside: (e) => e.preventDefault(),
+        //         onEscapeKeyDown: (e) => e.preventDefault(),
+        //         onCloseAutoFocus: (e) => e.preventDefault(), // <-- προαιρετικά
+        //       }
+        //     : undefined
+        // }
         footer={
           <div className='flex gap-2 justify-end'>
             <Button variant='outline' onClick={() => onOpenChange(false)}>
